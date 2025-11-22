@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .core.config import get_settings
 from .core.database import connect_to_mongo, close_mongo_connection
-from .api import recordings
+from .api import recordings, twilio_calls
 
 settings = get_settings()
 
@@ -35,6 +35,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(recordings.router, prefix=settings.api_prefix)
+app.include_router(twilio_calls.router, prefix=settings.api_prefix)
 
 
 @app.get("/")

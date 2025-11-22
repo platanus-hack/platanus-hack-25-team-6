@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     elevenlabs_api_key: str = ""
     openai_api_key: str = ""
 
+    # Twilio
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_phone_number: str = ""
+    your_phone_number: str = ""
+    base_url: str = ""  # Your server's public URL (ngrok for dev)
+
     # App
     environment: str = "development"
     debug: bool = True
@@ -28,6 +35,6 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
 
-@lru_cache()
 def get_settings() -> Settings:
+    """Get settings - reloads from .env each time for development"""
     return Settings()

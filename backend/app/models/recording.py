@@ -21,7 +21,7 @@ class RecordingStatus(str, Enum):
 class Recording(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     user_id: Optional[str] = None
-    file_path: str
+    file_path: Optional[str] = None
     file_url: Optional[str] = None
     duration: Optional[float] = None
     status: RecordingStatus = RecordingStatus.PROCESSING
