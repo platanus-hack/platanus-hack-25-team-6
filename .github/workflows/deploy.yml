@@ -1,0 +1,128 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      - name: Create deployment package
+        run: |
+          # Create a clean directory for deployment
+          mkdir -p deploy_package
+
+          # Copy necessary files
+          cp -r backend deploy_package/
+          cp -r frontend deploy_package/
+          cp docker-compose.yml deploy_package/
+          cp docker-compose.prod.yml deploy_package/
+          cp -r scripts deploy_package/ 2>/dev/null || true
+
+          # Create .env file with local MongoDB/MinIO (demo mode)
+          cat > deploy_package/.env << EOF
+          # MongoDB Configuration (Local - from docker-compose)
+          MONGO_INITDB_ROOT_USERNAME=admin
+          MONGO_INITDB_ROOT_PASSWORD=password123
+          MONGO_INITDB_DATABASE=wellness
+          MONGODB_URI=mongodb://admin:password123@mongodb:27017/wellness?authSource=admin
+
+          # MinIO Configuration (Local - from docker-compose)
+          MINIO_ROOT_USER=minioadmin
+          MINIO_ROOT_PASSWORD=minioadmin123
+          MINIO_ENDPOINT=http://minio:9000
+          MINIO_BUCKET_NAME=recordings
+
+          # Twilio Configuration
+          TWILIO_ACCOUNT_SID=${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_PHONE_NUMBER=${{ secrets.TWILIO_PHONE_NUMBER }}
+
+          # AI Services API Keys
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          ELEVENLABS_API_KEY=${{ secrets.ELEVENLABS_API_KEY }}
+          RUNWAY_API_KEY=${{ secrets.RUNWAY_API_KEY }}
+
+          # Application Configuration
+          PORT=8000
+          NODE_ENV=production
+          VITE_API_URL=https://api.${{ secrets.DOMAIN }}
+          BASE_URL=https://api.${{ secrets.DOMAIN }}
+          EOF
+
+      - name: Deploy to server via SCP
+        run: |
+          # Remove old deployment files on server
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "rm -rf /opt/app/*"
+
+          # Copy all files to server (includes docker-compose.prod.yml)
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r deploy_package/* root@${{ secrets.SERVER_IP }}:/opt/app/
+
+      - name: Deploy and restart services
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'ENDSSH'
+          cd /opt/app
+
+          # Load environment variables
+          set -a
+          source .env
+          set +a
+
+          # Stop existing containers
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
+
+          # Pull latest images and rebuild
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
+
+          # Start all services
+          docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+          # Clean up old images
+          docker image prune -af
+
+          # Show running containers
+          echo "Deployment completed. Running containers:"
+          docker ps
+          ENDSSH
+
+      - name: Health check
+        run: |
+          echo "Waiting 30 seconds for services to start..."
+          sleep 30
+
+          # Check backend health
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'ENDSSH'
+          echo "Checking backend health..."
+          curl -f http://localhost:8000/health || echo "Backend health check failed"
+
+          echo "Checking frontend..."
+          curl -f http://localhost:3000 || echo "Frontend health check failed"
+
+          echo "Container logs (last 20 lines):"
+          docker-compose -f /opt/app/docker-compose.yml -f /opt/app/docker-compose.prod.yml logs --tail=20
+          ENDSSH
+
+      - name: Deployment notification
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Deployment successful!"
+            echo "Frontend: http://${{ secrets.SERVER_IP }}:3000"
+            echo "Backend: http://${{ secrets.SERVER_IP }}:8000"
+          else
+            echo "❌ Deployment failed!"
+          fi
