@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Shield, Phone, AlertTriangle, Search, Filter } from 'lucide-react';
 import CallDetail from './CallDetail';
+import { TwilioCallMonitor } from './TwilioCallMonitor';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 function Dashboard({ onLogout }) {
+  const [activeTab, setActiveTab] = useState('live'); // 'live' or 'history'
   const [selectedCall, setSelectedCall] = useState(null);
   const [recordings, setRecordings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -189,28 +191,64 @@ function Dashboard({ onLogout }) {
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
           <h1 className="text-2xl sm:text-3xl font-bold text-white">
-            Registro de Interceptaciones
+            Monitor de Llamadas
           </h1>
-          <div className="flex items-center gap-3">
-            <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-              <Search className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
-            </button>
-            <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-              <Filter className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
-            </button>
-          </div>
+          {activeTab === 'history' && (
+            <div className="flex items-center gap-3">
+              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                <Search className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
+              </button>
+              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                <Filter className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="text-center py-12 sm:py-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-slate-400">Cargando llamadas...</p>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 sm:mb-8 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-1">
+          <button
+            onClick={() => setActiveTab('live')}
+            className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all ${
+              activeTab === 'live'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+            }`}
+          >
+            🔴 En Vivo
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all ${
+              activeTab === 'history'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+            }`}
+          >
+            📋 Historial
+          </button>
+        </div>
+
+        {/* Live Calls Tab */}
+        {activeTab === 'live' && (
+          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+            <TwilioCallMonitor />
           </div>
         )}
 
-        {/* Calls List */}
-        {!loading && calls.length > 0 && (
+        {/* History Tab */}
+        {activeTab === 'history' && (
+          <>
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-12 sm:py-16">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className="text-slate-400">Cargando llamadas...</p>
+              </div>
+            )}
+
+            {/* Calls List */}
+            {!loading && calls.length > 0 && (
           <div className="space-y-4 sm:space-y-5">
             {calls.map((call) => (
               <div
@@ -274,17 +312,19 @@ function Dashboard({ onLogout }) {
           </div>
         )}
 
-        {/* Empty State (shown when no calls) */}
-        {!loading && calls.length === 0 && (
-          <div className="text-center py-12 sm:py-16">
-            <Shield className="w-16 h-16 sm:w-20 sm:h-20 text-slate-700 mx-auto mb-4" />
-            <h3 className="text-lg sm:text-xl font-semibold text-slate-400 mb-2">
-              No hay llamadas interceptadas
-            </h3>
-            <p className="text-sm sm:text-base text-slate-500">
-              Las llamadas analizadas aparecerán aquí
-            </p>
-          </div>
+            {/* Empty State (shown when no calls) */}
+            {!loading && calls.length === 0 && (
+              <div className="text-center py-12 sm:py-16">
+                <Shield className="w-16 h-16 sm:w-20 sm:h-20 text-slate-700 mx-auto mb-4" />
+                <h3 className="text-lg sm:text-xl font-semibold text-slate-400 mb-2">
+                  No hay llamadas interceptadas
+                </h3>
+                <p className="text-sm sm:text-base text-slate-500">
+                  Las llamadas analizadas aparecerán aquí
+                </p>
+              </div>
+            )}
+          </>
         )}
       </main>
 
