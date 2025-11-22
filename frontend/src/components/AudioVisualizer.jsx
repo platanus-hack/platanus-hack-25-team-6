@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import './AudioVisualizer.css';
 
 export const AudioVisualizer = ({ analyser, isActive }) => {
   const canvasRef = useRef(null);
@@ -91,12 +90,12 @@ export const AudioVisualizer = ({ analyser, isActive }) => {
   }, [analyser, isActive]);
 
   return (
-    <div className="audio-visualizer-container">
-      <canvas ref={canvasRef} className="audio-visualizer-canvas" />
+    <div className="relative w-full h-32 sm:h-36 md:h-40 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl overflow-hidden my-3 sm:my-4 shadow-lg">
+      <canvas ref={canvasRef} className="w-full h-full block" />
       {isActive && (
-        <div className="visualizer-label">
-          <div className="pulse-indicator"></div>
-          <span>Escuchando...</span>
+        <div className="absolute top-2 sm:top-2.5 left-3 sm:left-4 flex items-center gap-2 text-xs sm:text-sm text-slate-400 font-medium uppercase tracking-wide bg-slate-900/80 px-2 sm:px-2.5 py-1 rounded backdrop-blur-sm">
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-lg shadow-blue-500/50"></div>
+          <span className="text-xs sm:text-sm">Escuchando...</span>
         </div>
       )}
     </div>

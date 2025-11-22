@@ -201,3 +201,141 @@
 .transcript-container::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* ========================================
+   RESPONSIVE DESIGN - MOBILE FIRST
+   ======================================== */
+
+/* Tablet and below (768px) */
+@media (max-width: 768px) {
+  .realtime-recorder {
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .recorder-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .time-display {
+    font-size: 2.5rem;
+  }
+
+  .status-indicator {
+    font-size: 0.95rem;
+  }
+
+  .risk-indicator {
+    padding: 1rem;
+  }
+
+  .risk-level {
+    font-size: 1.25rem;
+  }
+
+  .risk-header {
+    gap: 0.75rem;
+  }
+
+  .transcript-container {
+    padding: 1rem;
+    max-height: 300px;
+  }
+
+  .transcript-container h3 {
+    font-size: 1.1rem;
+  }
+
+  .btn-large {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    min-width: 200px;
+  }
+}
+
+/* Mobile (480px and below) */
+@media (max-width: 480px) {
+  .realtime-recorder {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+  }
+
+  .recorder-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .recorder-status {
+    margin: 1rem 0;
+  }
+
+  .time-display {
+    font-size: 2rem;
+  }
+
+  .status-indicator {
+    font-size: 0.85rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .session-info {
+    font-size: 0.75rem;
+  }
+
+  .risk-indicator {
+    padding: 0.75rem;
+    margin: 1rem 0;
+  }
+
+  .risk-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .risk-level {
+    font-size: 1.1rem;
+  }
+
+  .risk-indicators {
+    font-size: 0.8rem;
+  }
+
+  .risk-analysis {
+    font-size: 0.85rem;
+    padding: 0.75rem;
+  }
+
+  .transcript-container {
+    padding: 0.75rem;
+    max-height: 250px;
+    margin: 1rem 0;
+  }
+
+  .transcript-container h3 {
+    font-size: 1rem;
+  }
+
+  .transcript-message {
+    padding: 0.75rem;
+  }
+
+  .message-role {
+    font-size: 0.7rem;
+  }
+
+  .message-text {
+    font-size: 0.9rem;
+  }
+
+  .recorder-controls {
+    margin-top: 1.5rem;
+  }
+
+  .btn-large {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
+    min-width: 100%;
+    width: 100%;
+  }
+}
