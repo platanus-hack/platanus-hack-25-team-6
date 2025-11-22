@@ -25,7 +25,6 @@ class Settings(BaseSettings):
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
     twilio_phone_number: str = ""
-    your_phone_number: str = ""
     base_url: str = ""  # Your server's public URL (ngrok for dev)
 
     # App
