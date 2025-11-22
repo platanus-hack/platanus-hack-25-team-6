@@ -1,0 +1,181 @@
+.recordings-list {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.list-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+  color: #666;
+}
+
+.btn-icon:hover {
+  background: #f7fafc;
+  color: #333;
+}
+
+.btn-delete {
+  color: #e53e3e;
+}
+
+.btn-delete:hover {
+  background: #fee;
+}
+
+.loading,
+.error,
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.error {
+  color: #c53030;
+}
+
+.recordings-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.recording-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: box-shadow 0.2s;
+}
+
+.recording-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.card-date {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.card-status {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.status-badge,
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.confidence-bar {
+  margin-bottom: 1rem;
+}
+
+.confidence-label {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38a169 0%, #e53e3e 100%);
+  transition: width 0.3s;
+}
+
+.indicators {
+  margin-bottom: 1rem;
+}
+
+.indicators-label {
+  font-weight: 600;
+  color: #e53e3e;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.indicators ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.indicators li {
+  margin-bottom: 0.25rem;
+}
+
+.transcript-preview {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.transcript-label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.transcript-preview p {
+  margin: 0;
+  color: #666;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}

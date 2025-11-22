@@ -1,0 +1,203 @@
+.realtime-recorder {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  margin-bottom: 2rem;
+  color: white;
+}
+
+.recorder-header h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.75rem;
+  color: white;
+}
+
+.recorder-status {
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fc8181;
+}
+
+.time-display {
+  font-size: 3.5rem;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  color: #e2e8f0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.session-info {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #a0aec0;
+  font-family: monospace;
+}
+
+.risk-indicator {
+  background: rgba(255, 255, 255, 0.1);
+  border: 3px solid;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  backdrop-filter: blur(10px);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.risk-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.risk-icon {
+  flex-shrink: 0;
+  animation: pulse 2s infinite;
+}
+
+.risk-info {
+  flex: 1;
+}
+
+.risk-level {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  letter-spacing: 1px;
+}
+
+.risk-indicators {
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  opacity: 0.9;
+}
+
+.risk-analysis {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #e2e8f0;
+}
+
+.transcript-container {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.transcript-container h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: #e2e8f0;
+}
+
+.transcript-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.empty-transcript {
+  text-align: center;
+  padding: 2rem;
+  color: #a0aec0;
+  font-style: italic;
+}
+
+.transcript-message {
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 4px solid;
+  padding: 1rem;
+  border-radius: 8px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.transcript-message.user {
+  border-left-color: #4299e1;
+  background: rgba(66, 153, 225, 0.1);
+}
+
+.transcript-message.assistant {
+  border-left-color: #9f7aea;
+  background: rgba(159, 122, 234, 0.1);
+}
+
+.message-role {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #a0aec0;
+  margin-bottom: 0.5rem;
+  letter-spacing: 1px;
+}
+
+.message-text {
+  color: #e2e8f0;
+  line-height: 1.5;
+}
+
+.recorder-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.btn-large {
+  padding: 1.25rem 2.5rem;
+  font-size: 1.2rem;
+  min-width: 250px;
+}
+
+/* Scrollbar styling for transcript */
+.transcript-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.transcript-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.transcript-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.transcript-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
