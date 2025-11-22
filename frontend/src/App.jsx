@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { AudioRecorder } from './components/AudioRecorder';
+import { RealtimeRecorder } from './components/RealtimeRecorder';
 import { RecordingsList } from './components/RecordingsList';
 import { useNotifications } from './hooks/useNotifications';
-import { Shield, Bell, BellOff } from 'lucide-react';
+import { Shield, Bell, BellOff, Radio, Upload } from 'lucide-react';
 import './App.css';
 
 function App() {
   const [newRecording, setNewRecording] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [mode, setMode] = useState('realtime'); // 'realtime' or 'upload'
   const { isSupported, permission, requestPermission, showScamAlert } = useNotifications();
 
   useEffect(() => {
@@ -26,10 +28,16 @@ function App() {
   const handleScamDetected = (recording) => {
     if (notificationsEnabled) {
       showScamAlert(
-        recording.scam_risk_level,
-        recording.scam_confidence,
-        recording.scam_indicators
+        recording.scam_risk_level || recording.risk_level,
+        recording.scam_confidence || 0.9,
+        recording.scam_indicators || recording.indicators
       );
+    }
+  };
+
+  const handleRealtimeScam = (analysis) => {
+    if (notificationsEnabled) {
+      showScamAlert(analysis.risk_level, 0.9, analysis.indicators);
     }
   };
 
@@ -61,12 +69,34 @@ function App() {
           <div className="intro">
             <h2>Scam Call Detection POC</h2>
             <p>
-              Record a conversation to automatically transcribe and analyze it for potential scam
-              indicators using AI.
+              {mode === 'realtime'
+                ? 'Monitor conversations in real-time with AI-powered scam detection'
+                : 'Record and upload conversations for analysis'}
             </p>
           </div>
 
-          <AudioRecorder onUploadComplete={handleUploadComplete} />
+          <div className="mode-selector">
+            <button
+              onClick={() => setMode('realtime')}
+              className={`mode-btn ${mode === 'realtime' ? 'active' : ''}`}
+            >
+              <Radio size={20} />
+              <span>Live Monitoring</span>
+            </button>
+            <button
+              onClick={() => setMode('upload')}
+              className={`mode-btn ${mode === 'upload' ? 'active' : ''}`}
+            >
+              <Upload size={20} />
+              <span>Upload & Analyze</span>
+            </button>
+          </div>
+
+          {mode === 'realtime' ? (
+            <RealtimeRecorder onScamDetected={handleRealtimeScam} />
+          ) : (
+            <AudioRecorder onUploadComplete={handleUploadComplete} />
+          )}
 
           <RecordingsList newRecording={newRecording} onScamDetected={handleScamDetected} />
         </div>

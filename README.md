@@ -123,26 +123,48 @@ Frontend will be available at http://localhost:3000
 
 ## Usage
 
-1. **Enable Notifications** - Click "Enable Alerts" in the header to receive scam notifications
-2. **Record Audio** - Click "Start Recording" and speak or play a sample conversation
-3. **Upload & Analyze** - Click "Upload & Analyze" to send the recording for processing
-4. **View Results** - Watch the recording card update with transcription and scam analysis
-5. **Get Alerts** - Receive browser notifications if a high-risk scam is detected
+### Live Monitoring Mode (NEW!)
+1. **Enable Notifications** - Click "Enable Alerts" to receive scam warnings
+2. **Select Mode** - Click "Live Monitoring" tab
+3. **Start Monitoring** - Click "Start Live Monitoring" and grant microphone access
+4. **Speak or Listen** - The system monitors the conversation in real-time
+5. **View Analysis** - See live transcript and risk level updates
+6. **Get Instant Alerts** - Receive immediate notifications for scams
+7. **Stop** - Click "Stop Monitoring" when done
+
+### Upload & Analyze Mode
+1. **Enable Notifications** - Click "Enable Alerts" in the header
+2. **Select Mode** - Click "Upload & Analyze" tab
+3. **Record Audio** - Click "Start Recording" and speak or play a conversation
+4. **Upload** - Click "Upload & Analyze" to process the recording
+5. **View Results** - Watch the analysis appear (10-30 seconds)
+6. **Get Alerts** - Receive notifications for high-risk detections
 
 ## Features
+
+### 🔴 NEW: Real-Time Scam Detection
+- **Live audio streaming** via WebSocket
+- **OpenAI Realtime API** with GPT-4o for instant analysis
+- **Real-time transcription** as you speak
+- **Immediate scam alerts** (< 1 second latency)
+- **Continuous risk monitoring** during conversations
+- See [REALTIME_GUIDE.md](REALTIME_GUIDE.md) for details
 
 ### Recording & Storage
 - Browser-based audio recording using Web Audio API
 - Upload to MinIO (S3-compatible) storage
 - Support for multiple audio formats (WebM, WAV, MP3)
+- Two modes: **Live Monitoring** or **Upload & Analyze**
 
 ### Transcription
-- Automatic speech-to-text using OpenAI Whisper
+- **Real-time**: OpenAI Realtime API with Whisper integration
+- **Upload**: OpenAI Whisper for file-based transcription
 - Multi-language support
 - Duration tracking
 
 ### Scam Detection
-- AI-powered analysis using Anthropic Claude Sonnet
+- **Real-time**: GPT-4o continuous conversation analysis
+- **Upload**: Anthropic Claude Sonnet deep analysis
 - Risk levels: Low, Medium, High, Critical
 - Confidence scoring
 - Specific scam indicator detection:
@@ -158,6 +180,7 @@ Frontend will be available at http://localhost:3000
 - Real-time browser notifications
 - Automatic alerts for high-risk calls
 - Vibration patterns based on risk level
+- Immediate warnings during live calls
 
 ### PWA Features
 - Installable on mobile and desktop
