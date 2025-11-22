@@ -124,10 +124,12 @@
 }
 
 .caller-number,
-.call-sid,
-.transcript-count {
+.called-number,
+.call-time,
+.call-duration {
   display: flex;
   gap: 0.5rem;
+  font-size: 0.875rem;
 }
 
 /* Call Monitor */
@@ -167,7 +169,16 @@
 
 .call-details {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 1rem;
+  width: 100%;
+}
+
+.call-metadata {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
   align-items: center;
   font-size: 0.875rem;
   color: #4b5563;

@@ -20,10 +20,11 @@ active_sessions = {}
 class TwilioCallSession:
     """Manages a Twilio call with real-time transcription and scam detection"""
 
-    def __init__(self, call_sid: str, stream_sid: str, caller_number: str):
+    def __init__(self, call_sid: str, stream_sid: str, caller_number: str, called_number: str = None):
         self.call_sid = call_sid
         self.stream_sid = stream_sid
-        self.caller_number = caller_number
+        self.caller_number = caller_number  # From (quien llama)
+        self.called_number = called_number  # To (tu número Twilio)
         self.recording_id = str(uuid.uuid4())
         self.openai_service = OpenAIRealtimeService()
         self.transcript_buffer = []
@@ -32,6 +33,8 @@ class TwilioCallSession:
         self.twilio_websocket = None
         self.frontend_websockets = set()  # Multiple frontends can watch
         self.audio_chunks_received = 0
+        self.start_time = datetime.utcnow()  # Track call start time
+        self.duration = 0  # Duration in seconds
 
     async def start(self, twilio_ws: WebSocket):
         """Start the call session"""
@@ -64,7 +67,9 @@ class TwilioCallSession:
                 "type": "call.started",
                 "call_sid": self.call_sid,
                 "caller_number": self.caller_number,
-                "recording_id": self.recording_id
+                "called_number": self.called_number,
+                "recording_id": self.recording_id,
+                "start_time": self.start_time.isoformat()
             })
 
             # Start listening to OpenAI responses
@@ -265,6 +270,9 @@ class TwilioCallSession:
         print(f"[Twilio Call {self.call_sid}] Stopping session...")
         self.active = False
 
+        # Calculate duration
+        self.duration = (datetime.utcnow() - self.start_time).total_seconds()
+
         if self.openai_service:
             try:
                 await self.openai_service.disconnect()
@@ -327,7 +335,8 @@ class TwilioCallSession:
         # Notify frontends
         await self.broadcast_to_frontends({
             "type": "call.stopped",
-            "recording_id": self.recording_id
+            "recording_id": self.recording_id,
+            "duration": self.duration
         })
 
         # Close frontend connections
@@ -344,17 +353,23 @@ async def incoming_call(request: Request):
     settings = get_settings()
     form_data = await request.form()
     caller_number = form_data.get("From")
+    called_number = form_data.get("To")
     call_sid = form_data.get("CallSid")
 
-    print(f"📞 Incoming call from {caller_number} (SID: {call_sid})")
+    print(f"📞 Incoming call from {caller_number} to {called_number} (SID: {call_sid})")
 
     response = VoiceResponse()
 
-    # Connect to media stream
+    # Connect to media stream with custom parameters
     connect = Connect()
     base_url_clean = settings.base_url.replace('https://', '').replace('http://', '')
     websocket_url = f'wss://{base_url_clean}/api/v1/twilio/media-stream'
-    connect.stream(url=websocket_url)
+
+    # Pass phone numbers as custom parameters
+    stream = connect.stream(url=websocket_url)
+    stream.parameter(name='From', value=caller_number)
+    stream.parameter(name='To', value=called_number)
+
     response.append(connect)
 
     return Response(content=str(response), media_type="application/xml")
@@ -377,12 +392,18 @@ async def media_stream(websocket: WebSocket):
             if event == 'start':
                 stream_sid = msg.get('streamSid')
                 call_sid = msg['start']['callSid']
-                caller_number = msg['start'].get('customParameters', {}).get('From', 'Unknown')
+
+                # Extract phone numbers from the start event
+                # Twilio sends these in the 'start' payload
+                start_data = msg['start']
+                caller_number = start_data.get('customParameters', {}).get('From') or start_data.get('from', 'Unknown')
+                called_number = start_data.get('customParameters', {}).get('To') or start_data.get('to', 'Unknown')
 
                 print(f"🎙️ Media stream started: {call_sid}")
+                print(f"   From: {caller_number} → To: {called_number}")
 
                 # Create session
-                session = TwilioCallSession(call_sid, stream_sid, caller_number)
+                session = TwilioCallSession(call_sid, stream_sid, caller_number, called_number)
                 active_sessions[call_sid] = session
 
                 # Start session
@@ -432,13 +453,17 @@ async def monitor_call(websocket: WebSocket, call_sid: str):
     print(f"[Monitor] Frontend connected to call {call_sid}")
 
     # Send current state
+    current_duration = (datetime.utcnow() - session.start_time).total_seconds()
     await websocket.send_json({
         "type": "call.state",
         "call_sid": call_sid,
         "caller_number": session.caller_number,
+        "called_number": session.called_number,
         "recording_id": session.recording_id,
         "current_risk_level": session.current_risk_level,
-        "transcript": session.transcript_buffer
+        "transcript": session.transcript_buffer,
+        "start_time": session.start_time.isoformat(),
+        "duration": current_duration
     })
 
     try:
@@ -464,9 +489,12 @@ async def get_active_calls():
             {
                 "call_sid": session.call_sid,
                 "caller_number": session.caller_number,
+                "called_number": session.called_number,
                 "recording_id": session.recording_id,
                 "current_risk_level": session.current_risk_level,
-                "transcript_count": len(session.transcript_buffer)
+                "transcript_count": len(session.transcript_buffer),
+                "start_time": session.start_time.isoformat(),
+                "duration": (datetime.utcnow() - session.start_time).total_seconds()
             }
             for session in active_sessions.values()
         ]

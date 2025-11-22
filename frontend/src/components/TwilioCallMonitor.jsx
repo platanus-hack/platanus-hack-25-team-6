@@ -11,6 +11,7 @@ export const TwilioCallMonitor = () => {
   const [transcript, setTranscript] = useState([]);
   const [currentRiskLevel, setCurrentRiskLevel] = useState('low');
   const [isConnected, setIsConnected] = useState(false);
+  const [callInfo, setCallInfo] = useState(null); // Stores call metadata (numbers, times, etc)
 
   const wsRef = useRef(null);
   const alertAudioRef = useRef(null);
@@ -55,10 +56,22 @@ export const TwilioCallMonitor = () => {
           setCallState(data);
           setCurrentRiskLevel(data.current_risk_level || 'low');
           setTranscript(data.transcript || []);
+          setCallInfo({
+            caller_number: data.caller_number,
+            called_number: data.called_number,
+            start_time: data.start_time,
+            duration: data.duration
+          });
           break;
 
         case 'call.started':
           setCallState(data);
+          setCallInfo({
+            caller_number: data.caller_number,
+            called_number: data.called_number,
+            start_time: data.start_time,
+            duration: 0
+          });
           break;
 
         case 'transcript.update':
@@ -201,6 +214,21 @@ export const TwilioCallMonitor = () => {
     }
   };
 
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatDateTime = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return {
+      date: date.toLocaleDateString('es-ES'),
+      time: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    };
+  };
+
   return (
     <div className="twilio-monitor-container">
       <div className="monitor-header">
@@ -238,13 +266,16 @@ export const TwilioCallMonitor = () => {
                   </div>
                   <div className="call-info">
                     <div className="caller-number">
-                      <strong>Número:</strong> {call.caller_number}
+                      <strong>De:</strong> {call.caller_number}
                     </div>
-                    <div className="call-sid">
-                      <strong>ID:</strong> {call.call_sid.slice(0, 20)}...
+                    <div className="called-number">
+                      <strong>A:</strong> {call.called_number}
                     </div>
-                    <div className="transcript-count">
-                      <strong>Transcripciones:</strong> {call.transcript_count}
+                    <div className="call-time">
+                      <strong>Inicio:</strong> {formatDateTime(call.start_time).time}
+                    </div>
+                    <div className="call-duration">
+                      <strong>Duración:</strong> {formatDuration(call.duration)}
                     </div>
                   </div>
                 </div>
@@ -266,9 +297,14 @@ export const TwilioCallMonitor = () => {
                   🔴 Desconectado
                 </span>
               )}
-              {callState && (
+              {callInfo && (
                 <div className="call-details">
-                  <span><strong>Número:</strong> {callState.caller_number}</span>
+                  <div className="call-metadata">
+                    <span><strong>De:</strong> {callInfo.caller_number}</span>
+                    <span><strong>A:</strong> {callInfo.called_number}</span>
+                    <span><strong>Inicio:</strong> {formatDateTime(callInfo.start_time).date} {formatDateTime(callInfo.start_time).time}</span>
+                    <span><strong>Duración:</strong> {formatDuration(callInfo.duration)}</span>
+                  </div>
                   <span
                     className="risk-indicator"
                     style={{
