@@ -3,19 +3,339 @@ from twilio.twiml.voice_response import VoiceResponse, Connect
 from ..core.config import get_settings
 from ..core.database import get_database
 from ..models.recording import Recording, RecordingStatus
-from ..core.storage import minio_client
+from ..services.realtime_service import OpenAIRealtimeService
+from ..services.scam_detection import scam_detection_service
 from datetime import datetime
-from pathlib import Path
 import json
 import base64
 import uuid
-import os
 import asyncio
 
 router = APIRouter(prefix="/twilio", tags=["twilio"])
-active_recordings = {}
 
-NOTIFICATION_AUDIO_PATH = Path("./recordings/notification.raw")
+# Active sessions: call_sid -> session info
+active_sessions = {}
+
+
+class TwilioCallSession:
+    """Manages a Twilio call with real-time transcription and scam detection"""
+
+    def __init__(self, call_sid: str, stream_sid: str, caller_number: str):
+        self.call_sid = call_sid
+        self.stream_sid = stream_sid
+        self.caller_number = caller_number
+        self.recording_id = str(uuid.uuid4())
+        self.openai_service = OpenAIRealtimeService()
+        self.transcript_buffer = []
+        self.current_risk_level = "low"
+        self.active = False
+        self.twilio_websocket = None
+        self.frontend_websockets = set()  # Multiple frontends can watch
+        self.audio_chunks_received = 0
+
+    async def start(self, twilio_ws: WebSocket):
+        """Start the call session"""
+        try:
+            print(f"[Twilio Call {self.call_sid}] Starting session...")
+            self.twilio_websocket = twilio_ws
+
+            # Connect to OpenAI Realtime API
+            await self.openai_service.connect()
+            self.active = True
+            print(f"[Twilio Call {self.call_sid}] Connected to OpenAI")
+
+            # Create recording document
+            db = get_database()
+            recording = Recording(
+                id=self.recording_id,
+                user_id=self.caller_number,
+                file_path=f"twilio/{self.call_sid}",
+                status=RecordingStatus.PROCESSING,
+                transcript=""
+            )
+
+            recording_dict = recording.model_dump(by_alias=True, exclude={"id"})
+            recording_dict["_id"] = self.recording_id
+            await db.recordings.insert_one(recording_dict)
+            print(f"[Twilio Call {self.call_sid}] Recording created: {self.recording_id}")
+
+            # Notify frontends
+            await self.broadcast_to_frontends({
+                "type": "call.started",
+                "call_sid": self.call_sid,
+                "caller_number": self.caller_number,
+                "recording_id": self.recording_id
+            })
+
+            # Start listening to OpenAI responses
+            asyncio.create_task(self.listen_to_openai())
+
+        except Exception as e:
+            print(f"[Twilio Call {self.call_sid}] ERROR starting: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            self.active = False
+
+    async def handle_audio(self, audio_payload: str):
+        """Handle incoming audio from Twilio (mulaw base64)"""
+        try:
+            self.audio_chunks_received += 1
+
+            if self.audio_chunks_received % 50 == 0:
+                print(f"[Twilio Call {self.call_sid}] Received {self.audio_chunks_received} audio chunks")
+
+            # Decode mulaw audio
+            audio_data = base64.b64decode(audio_payload)
+
+            # Convert mulaw to PCM16 for OpenAI
+            # Twilio sends 8kHz mulaw, OpenAI expects 24kHz PCM16
+            pcm16_audio = self.convert_mulaw_to_pcm16(audio_data)
+
+            # Send to OpenAI
+            await self.openai_service.send_audio(pcm16_audio)
+
+        except Exception as e:
+            print(f"[Twilio Call {self.call_sid}] Error handling audio: {str(e)}")
+
+    def convert_mulaw_to_pcm16(self, mulaw_data: bytes) -> bytes:
+        """Convert 8kHz mulaw to 24kHz PCM16 for OpenAI"""
+        import audioop
+
+        # Decode mulaw to PCM (linear)
+        pcm_8k = audioop.ulaw2lin(mulaw_data, 2)
+
+        # Resample from 8kHz to 24kHz
+        pcm_24k, _ = audioop.ratecv(pcm_8k, 2, 1, 8000, 24000, None)
+
+        return pcm_24k
+
+    async def listen_to_openai(self):
+        """Listen for transcription events from OpenAI"""
+        print(f"[Twilio Call {self.call_sid}] Starting to listen to OpenAI events...")
+        try:
+            async def handle_event(event: dict):
+                event_type = event.get("type")
+
+                if event_type == "conversation.item.input_audio_transcription.completed":
+                    transcript = event.get("transcript", "")
+                    self.transcript_buffer.append({
+                        "role": "user",
+                        "text": transcript,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+
+                    # Broadcast to frontends
+                    await self.broadcast_to_frontends({
+                        "type": "transcript.update",
+                        "role": "user",
+                        "text": transcript
+                    })
+
+                    # Update database
+                    await self.update_recording()
+
+                    # Trigger analysis every 3 transcripts (more frequent for calls)
+                    user_transcript_count = sum(1 for item in self.transcript_buffer if item['role'] == 'user')
+                    if user_transcript_count % 3 == 0:
+                        asyncio.create_task(self.analyze_with_claude())
+
+                elif event_type == "error":
+                    error_msg = event.get("error", {}).get("message", "Unknown error")
+                    print(f"[Twilio Call {self.call_sid}] OpenAI error: {error_msg}")
+
+            await self.openai_service.listen(handle_event)
+
+        except Exception as e:
+            print(f"[Twilio Call {self.call_sid}] Error in listen_to_openai: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            self.active = False
+
+    async def analyze_with_claude(self):
+        """Analyze conversation using Claude"""
+        try:
+            user_transcripts = [
+                item['text'] for item in self.transcript_buffer
+                if item['role'] == 'user'
+            ]
+
+            if not user_transcripts:
+                return
+
+            full_transcript = "\n".join(user_transcripts)
+            print(f"[Twilio Call {self.call_sid}] Analyzing with Claude...")
+
+            # Use Haiku for fast real-time analysis
+            analysis = await scam_detection_service.analyze_conversation(
+                full_transcript,
+                use_fast_model=True
+            )
+
+            risk_level = analysis.risk_level.value
+            self.current_risk_level = risk_level
+
+            # Format Spanish response
+            risk_level_spanish = {
+                "low": "BAJO",
+                "medium": "MEDIO",
+                "high": "ALTO",
+                "critical": "CRÍTICO"
+            }
+
+            formatted_parts = [
+                f"Nivel de Riesgo: {risk_level_spanish.get(risk_level, risk_level.upper())}",
+                f"Indicadores: {', '.join(analysis.indicators) if analysis.indicators else 'Ninguno detectado'}",
+            ]
+
+            if analysis.meta:
+                if analysis.meta.impersonating:
+                    formatted_parts.append(f"Suplantando: {analysis.meta.impersonating}")
+                if analysis.meta.scam_type:
+                    formatted_parts.append(f"Tipo de Estafa: {analysis.meta.scam_type}")
+                if analysis.meta.urgency_level:
+                    formatted_parts.append(f"Nivel de Urgencia: {analysis.meta.urgency_level}")
+
+            formatted_parts.extend([
+                f"Recomendación: {analysis.recommended_actions[0] if analysis.recommended_actions else 'Continuar normalmente'}",
+                f"Explicación: {analysis.reasoning}"
+            ])
+
+            formatted_text = "\n".join(formatted_parts)
+
+            print(f"[Twilio Call {self.call_sid}] ✅ Analysis: {risk_level} risk")
+
+            # Add to transcript buffer
+            self.transcript_buffer.append({
+                "role": "assistant",
+                "text": formatted_text,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+
+            # Broadcast to frontends
+            await self.broadcast_to_frontends({
+                "type": "analysis.complete",
+                "risk_level": risk_level,
+                "indicators": analysis.indicators,
+                "text": formatted_text,
+                "is_danger": risk_level in ["medium", "high", "critical"]
+            })
+
+            # Update recording
+            await self.update_recording()
+
+        except Exception as e:
+            print(f"[Twilio Call {self.call_sid}] Error in analysis: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    async def update_recording(self):
+        """Update recording in database"""
+        db = get_database()
+
+        full_transcript = "\n".join([
+            f"[{item['role'].upper()}]: {item['text']}"
+            for item in self.transcript_buffer
+        ])
+
+        await db.recordings.update_one(
+            {"_id": self.recording_id},
+            {
+                "$set": {
+                    "transcript": full_transcript,
+                    "scam_risk_level": self.current_risk_level,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+
+    async def broadcast_to_frontends(self, message: dict):
+        """Broadcast message to all connected frontends"""
+        disconnected = set()
+        for ws in self.frontend_websockets:
+            try:
+                await ws.send_json(message)
+            except:
+                disconnected.add(ws)
+
+        # Remove disconnected websockets
+        self.frontend_websockets -= disconnected
+
+    async def stop(self):
+        """Stop the call session"""
+        print(f"[Twilio Call {self.call_sid}] Stopping session...")
+        self.active = False
+
+        if self.openai_service:
+            try:
+                await self.openai_service.disconnect()
+            except Exception as e:
+                print(f"[Twilio Call {self.call_sid}] Error disconnecting OpenAI: {e}")
+
+        # Perform final analysis
+        if self.recording_id:
+            try:
+                db = get_database()
+                user_transcripts = [
+                    item['text'] for item in self.transcript_buffer
+                    if item['role'] == 'user'
+                ]
+
+                if user_transcripts:
+                    print(f"[Twilio Call {self.call_sid}] Performing final analysis...")
+                    full_transcript = "\n".join(user_transcripts)
+
+                    # Use Sonnet 4 for accurate final analysis
+                    final_analysis = await scam_detection_service.analyze_conversation(
+                        full_transcript,
+                        use_fast_model=False
+                    )
+
+                    update_data = {
+                        "status": RecordingStatus.ANALYZED,
+                        "scam_risk_level": final_analysis.risk_level.value,
+                        "scam_confidence": final_analysis.confidence,
+                        "scam_indicators": final_analysis.indicators,
+                        "updated_at": datetime.utcnow()
+                    }
+
+                    if final_analysis.meta:
+                        update_data["scam_metadata"] = {
+                            "impersonating": final_analysis.meta.impersonating,
+                            "scam_type": final_analysis.meta.scam_type,
+                            "urgency_level": final_analysis.meta.urgency_level,
+                            "information_requested": final_analysis.meta.information_requested,
+                            "payment_methods": final_analysis.meta.payment_methods
+                        }
+
+                    await db.recordings.update_one(
+                        {"_id": self.recording_id},
+                        {"$set": update_data}
+                    )
+
+                    print(f"[Twilio Call {self.call_sid}] ✅ Final analysis saved")
+                else:
+                    await db.recordings.update_one(
+                        {"_id": self.recording_id},
+                        {"$set": {"status": RecordingStatus.ANALYZED, "updated_at": datetime.utcnow()}}
+                    )
+
+            except Exception as e:
+                print(f"[Twilio Call {self.call_sid}] Error in final analysis: {e}")
+                import traceback
+                traceback.print_exc()
+
+        # Notify frontends
+        await self.broadcast_to_frontends({
+            "type": "call.stopped",
+            "recording_id": self.recording_id
+        })
+
+        # Close frontend connections
+        for ws in self.frontend_websockets:
+            try:
+                await ws.close()
+            except:
+                pass
 
 
 @router.post("/incoming-call")
@@ -26,11 +346,11 @@ async def incoming_call(request: Request):
     caller_number = form_data.get("From")
     call_sid = form_data.get("CallSid")
 
-    print(f"📞 Call from {caller_number} (SID: {call_sid})")
+    print(f"📞 Incoming call from {caller_number} (SID: {call_sid})")
 
     response = VoiceResponse()
 
-    # Use Connect for bidirectional streaming
+    # Connect to media stream
     connect = Connect()
     base_url_clean = settings.base_url.replace('https://', '').replace('http://', '')
     websocket_url = f'wss://{base_url_clean}/api/v1/twilio/media-stream'
@@ -40,102 +360,13 @@ async def incoming_call(request: Request):
     return Response(content=str(response), media_type="application/xml")
 
 
-@router.post("/conference-status")
-async def conference_status(request: Request):
-    """Conference status callback"""
-    return Response(content="OK", status_code=200)
-
-
-@router.get("/health")
-async def twilio_health():
-    """Health check"""
-    settings = get_settings()
-    return {
-        "status": "ok",
-        "twilio_configured": bool(settings.twilio_account_sid and settings.twilio_auth_token)
-    }
-
-
-async def play_notification_audio(websocket: WebSocket, stream_sid: str):
-    """Play notification audio after 5 seconds"""
-    await asyncio.sleep(5)
-
-    try:
-        if not NOTIFICATION_AUDIO_PATH.exists():
-            print("❌ Notification audio file not found")
-            return
-
-        print("🔊 Playing notification audio...")
-
-        with open(NOTIFICATION_AUDIO_PATH, 'rb') as f:
-            audio_data = f.read()
-
-        # Send audio in chunks (160 bytes = 20ms at 8kHz)
-        chunk_size = 160
-        for i in range(0, len(audio_data), chunk_size):
-            chunk = audio_data[i:i + chunk_size]
-            payload = base64.b64encode(chunk).decode('utf-8')
-
-            message = {
-                "event": "media",
-                "streamSid": stream_sid,
-                "media": {
-                    "payload": payload
-                }
-            }
-
-            await websocket.send_text(json.dumps(message))
-            await asyncio.sleep(0.02)  # 20ms delay between chunks
-
-        print("✅ Notification audio completed")
-
-    except Exception as e:
-        print(f"❌ Error playing notification: {str(e)}")
-
-
-async def process_recording(recording_id: str, raw_path: str):
-    """Convert raw audio to WAV"""
-    from ..services.audio_converter import convert_mulaw_to_wav
-
-    try:
-        # Convert to WAV
-        wav_path = raw_path.replace('.raw', '.wav')
-        await convert_mulaw_to_wav(raw_path, wav_path)
-
-        # Upload to MinIO
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        object_name = f"recordings/{timestamp}_{recording_id}.wav"
-
-        with open(wav_path, 'rb') as f:
-            file_url = await minio_client.upload_file(f, object_name, "audio/wav")
-
-        # Update database
-        db = get_database()
-        await db.recordings.update_one(
-            {"_id": recording_id},
-            {"$set": {"file_path": object_name, "file_url": file_url, "status": RecordingStatus.TRANSCRIBED}}
-        )
-
-        print(f"✅ Recording saved: {wav_path}")
-
-    except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        db = get_database()
-        await db.recordings.update_one(
-            {"_id": recording_id},
-            {"$set": {"status": RecordingStatus.FAILED}}
-        )
-
-
 @router.websocket("/media-stream")
 async def media_stream(websocket: WebSocket):
     """WebSocket endpoint for Twilio media streams"""
     await websocket.accept()
 
+    session = None
     stream_sid = None
-    recording_id = None
-    recording_file = None
-    recording_path = None
 
     try:
         while True:
@@ -146,58 +377,108 @@ async def media_stream(websocket: WebSocket):
             if event == 'start':
                 stream_sid = msg.get('streamSid')
                 call_sid = msg['start']['callSid']
-                recording_id = str(uuid.uuid4())
-                timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+                caller_number = msg['start'].get('customParameters', {}).get('From', 'Unknown')
 
-                # Create file
-                recordings_dir = Path("./recordings")
-                recordings_dir.mkdir(exist_ok=True)
-                recording_path = recordings_dir / f"recording-{call_sid}-{timestamp}.raw"
+                print(f"🎙️ Media stream started: {call_sid}")
 
-                recording_file = open(recording_path, 'wb')
+                # Create session
+                session = TwilioCallSession(call_sid, stream_sid, caller_number)
+                active_sessions[call_sid] = session
 
-                active_recordings[stream_sid] = {
-                    'recording_id': recording_id,
-                    'path': str(recording_path),
-                    'start_time': datetime.utcnow()
-                }
-
-                # Save to database
-                db = get_database()
-                recording = Recording(id=recording_id, user_id=call_sid, status=RecordingStatus.PROCESSING)
-                recording_dict = recording.model_dump(by_alias=True, exclude={"id"})
-                recording_dict["_id"] = recording_id
-                await db.recordings.insert_one(recording_dict)
-
-                print(f"🎙️ Recording started: {call_sid}")
-
-                # Start notification audio playback task
-                asyncio.create_task(play_notification_audio(websocket, stream_sid))
+                # Start session
+                await session.start(websocket)
 
             elif event == 'media':
-                if msg.get('media') and msg['media'].get('payload'):
-                    audio_chunk = base64.b64decode(msg['media']['payload'])
-                    if recording_file:
-                        recording_file.write(audio_chunk)
-                        recording_file.flush()
+                if session and msg.get('media', {}).get('payload'):
+                    await session.handle_audio(msg['media']['payload'])
 
             elif event == 'stop':
-                if recording_file:
-                    recording_file.close()
-                    recording_file = None
-
-                if stream_sid in active_recordings:
-                    info = active_recordings[stream_sid]
-                    asyncio.create_task(process_recording(info['recording_id'], info['path']))
-                    del active_recordings[stream_sid]
-                    print(f"✅ Recording completed")
+                print(f"🛑 Media stream stopped: {stream_sid}")
+                if session:
+                    await session.stop()
+                    if session.call_sid in active_sessions:
+                        del active_sessions[session.call_sid]
+                break
 
     except WebSocketDisconnect:
         pass
     except Exception as e:
         print(f"❌ WebSocket error: {str(e)}")
+        import traceback
+        traceback.print_exc()
     finally:
-        if recording_file:
-            recording_file.close()
-        if stream_sid in active_recordings:
-            del active_recordings[stream_sid]
+        if session:
+            await session.stop()
+            if session.call_sid in active_sessions:
+                del active_sessions[session.call_sid]
+
+
+@router.websocket("/monitor/{call_sid}")
+async def monitor_call(websocket: WebSocket, call_sid: str):
+    """WebSocket endpoint for frontends to monitor active calls"""
+    await websocket.accept()
+
+    session = active_sessions.get(call_sid)
+    if not session:
+        await websocket.send_json({
+            "type": "error",
+            "message": "Call not found or not active"
+        })
+        await websocket.close()
+        return
+
+    # Add frontend to session
+    session.frontend_websockets.add(websocket)
+    print(f"[Monitor] Frontend connected to call {call_sid}")
+
+    # Send current state
+    await websocket.send_json({
+        "type": "call.state",
+        "call_sid": call_sid,
+        "caller_number": session.caller_number,
+        "recording_id": session.recording_id,
+        "current_risk_level": session.current_risk_level,
+        "transcript": session.transcript_buffer
+    })
+
+    try:
+        # Keep connection alive
+        while True:
+            message = await websocket.receive_text()
+            # Frontends can send control messages here if needed
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        print(f"[Monitor] Error: {e}")
+    finally:
+        if session and websocket in session.frontend_websockets:
+            session.frontend_websockets.remove(websocket)
+        print(f"[Monitor] Frontend disconnected from call {call_sid}")
+
+
+@router.get("/active-calls")
+async def get_active_calls():
+    """Get list of active calls"""
+    return {
+        "active_calls": [
+            {
+                "call_sid": session.call_sid,
+                "caller_number": session.caller_number,
+                "recording_id": session.recording_id,
+                "current_risk_level": session.current_risk_level,
+                "transcript_count": len(session.transcript_buffer)
+            }
+            for session in active_sessions.values()
+        ]
+    }
+
+
+@router.get("/health")
+async def twilio_health():
+    """Health check"""
+    settings = get_settings()
+    return {
+        "status": "ok",
+        "twilio_configured": bool(settings.twilio_account_sid and settings.twilio_auth_token),
+        "active_calls": len(active_sessions)
+    }

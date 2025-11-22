@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { AudioRecorder } from './components/AudioRecorder';
 import { RealtimeRecorder } from './components/RealtimeRecorder';
+import { TwilioCallMonitor } from './components/TwilioCallMonitor';
 import { RecordingsList } from './components/RecordingsList';
 import { useNotifications } from './hooks/useNotifications';
-import { Shield, Bell, BellOff, Radio, Upload } from 'lucide-react';
+import { Shield, Bell, BellOff, Radio, Upload, Phone } from 'lucide-react';
 import './App.css';
 
 function App() {
   const [newRecording, setNewRecording] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [mode, setMode] = useState('realtime'); // 'realtime' or 'upload'
+  const [mode, setMode] = useState('twilio'); // 'twilio', 'realtime', or 'upload'
   const { isSupported, permission, requestPermission, showScamAlert } = useNotifications();
 
   useEffect(() => {
@@ -69,13 +70,22 @@ function App() {
           <div className="intro">
             <h2>Scam Call Detection POC</h2>
             <p>
-              {mode === 'realtime'
+              {mode === 'twilio'
+                ? 'Monitor incoming Twilio calls in real-time with AI-powered scam detection'
+                : mode === 'realtime'
                 ? 'Monitor conversations in real-time with AI-powered scam detection'
                 : 'Record and upload conversations for analysis'}
             </p>
           </div>
 
           <div className="mode-selector">
+            <button
+              onClick={() => setMode('twilio')}
+              className={`mode-btn ${mode === 'twilio' ? 'active' : ''}`}
+            >
+              <Phone size={20} />
+              <span>Twilio Calls</span>
+            </button>
             <button
               onClick={() => setMode('realtime')}
               className={`mode-btn ${mode === 'realtime' ? 'active' : ''}`}
@@ -92,7 +102,9 @@ function App() {
             </button>
           </div>
 
-          {mode === 'realtime' ? (
+          {mode === 'twilio' ? (
+            <TwilioCallMonitor />
+          ) : mode === 'realtime' ? (
             <RealtimeRecorder onScamDetected={handleRealtimeScam} />
           ) : (
             <AudioRecorder onUploadComplete={handleUploadComplete} />
