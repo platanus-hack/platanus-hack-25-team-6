@@ -1,178 +1,307 @@
-# Base Infrastructure
+# Call Interceptor - Scam Detection POC
 
-Clean Next.js base with MongoDB, MinIO storage, and PWA support.
+A proof-of-concept application for detecting scam calls using AI-powered transcription and analysis.
 
-## Stack
+## Overview
 
-- **Framework**: Next.js 15 (App Router) + PWA
-- **Database**: MongoDB (Docker)
-- **Storage**: MinIO S3-compatible (Docker)
-- **Architecture**: Core + Services pattern
-
-## Quick Start
-
-```bash
-# 1. Start services
-npm run docker:up
-
-# 2. Install dependencies
-npm install
-
-# 3. Setup environment
-cp .env.example .env.local
-
-# 4. Run dev server
-npm run dev
-```
-
-Visit: http://localhost:3000
-
-## Project Structure
-
-```
-├── app/                      # Next.js App Router
-│   ├── api/health/          # Health check endpoint
-│   ├── layout.tsx
-│   └── page.tsx
-├── src/
-│   ├── core/                # Core infrastructure clients
-│   │   ├── db.ts            # MongoDB client
-│   │   └── minio.ts         # MinIO client
-│   └── services/            # Business services
-│       └── file.service.ts  # File operations
-├── docker-compose.yml       # MongoDB + MinIO
-└── public/
-    └── manifest.json        # PWA manifest
-```
+This application allows users to:
+1. **Record** phone conversations via a web interface
+2. **Transcribe** audio using OpenAI Whisper
+3. **Analyze** conversations for scam indicators using Anthropic Claude
+4. **Alert** users with browser notifications when scams are detected
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────┐
-│      Application Layer              │
-│      (Routes, Pages, Components)    │
-└──────────────┬──────────────────────┘
-               │
-┌──────────────▼──────────────────────┐
-│      Services Layer                 │
-│      - file.service.ts              │
-│      - (your services here)         │
-└──────────────┬──────────────────────┘
-               │
-┌──────────────▼──────────────────────┐
-│      Core Layer                     │
-│      - db.ts (MongoDB client)       │
-│      - minio.ts (MinIO client)      │
-└─────────────────────────────────────┘
+├── backend/          # FastAPI Python backend
+│   ├── app/
+│   │   ├── api/      # API endpoints
+│   │   ├── core/     # Configuration and database
+│   │   ├── models/   # Data models
+│   │   ├── schemas/  # Pydantic schemas
+│   │   └── services/ # Business logic (transcription, scam detection)
+│   └── pyproject.toml
+│
+├── frontend/         # React PWA frontend
+│   ├── src/
+│   │   ├── components/  # UI components
+│   │   ├── hooks/       # Custom React hooks
+│   │   └── services/    # API client
+│   └── package.json
+│
+└── docker-compose.yml   # MongoDB + MinIO services
 ```
 
-**Core** = Low-level infrastructure clients (singletons)
-**Services** = Business logic that uses core clients
+## Tech Stack
 
-## Services (Docker)
+### Backend
+- **FastAPI** - Modern Python web framework
+- **uv** - Fast Python package manager
+- **MongoDB** - Document database for storing recordings and analysis
+- **MinIO** - S3-compatible object storage for audio files
+- **OpenAI Whisper** - Speech-to-text transcription
+- **Anthropic Claude** - AI-powered scam detection
 
-**MongoDB**
-- Port: 27017
-- UI: http://localhost:8081 (Mongo Express)
-- User: `admin`
-- Pass: `password123`
+### Frontend
+- **React** - UI framework
+- **Vite** - Build tool and dev server
+- **PWA** - Progressive Web App with offline support
+- **Web Audio API** - Browser audio recording
+- **Notifications API** - Browser notifications for scam alerts
 
-**MinIO**
-- API: http://localhost:9000
-- Console: http://localhost:9001
-- User: `minioadmin`
-- Pass: `minioadmin123`
+## Prerequisites
 
-## Scripts
+- Python 3.11+
+- Node.js 18+
+- Docker and Docker Compose
+- uv package manager (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+
+## Setup
+
+### 1. Clone and Configure
 
 ```bash
-npm run dev              # Development server
-npm run build            # Production build
-npm run start            # Production server
-npm run docker:up        # Start services
-npm run docker:down      # Stop services
-npm run docker:logs      # View logs
+# Navigate to project directory
+cd /path/to/poc
+
+# Copy environment variables
+cp backend/.env.example .env
 ```
+
+### 2. Update API Keys in `.env`
+
+```env
+# Required API keys
+ANTHROPIC_API_KEY=your_anthropic_key_here
+OPENAI_API_KEY=your_openai_key_here
+
+# Optional
+ELEVENLABS_API_KEY=your_elevenlabs_key_here
+```
+
+### 3. Start Infrastructure
+
+```bash
+# Start MongoDB and MinIO
+docker-compose up -d
+
+# Verify services are running
+docker-compose ps
+```
+
+Access MinIO console at http://localhost:9001 (minioadmin/minioadmin123)
+
+### 4. Start Backend
+
+```bash
+cd backend
+
+# Install dependencies with uv
+uv sync
+
+# Run development server
+uv run python run.py
+```
+
+Backend will be available at http://localhost:8000
+
+API docs: http://localhost:8000/docs
+
+### 5. Start Frontend
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+```
+
+Frontend will be available at http://localhost:3000
+
+## Usage
+
+1. **Enable Notifications** - Click "Enable Alerts" in the header to receive scam notifications
+2. **Record Audio** - Click "Start Recording" and speak or play a sample conversation
+3. **Upload & Analyze** - Click "Upload & Analyze" to send the recording for processing
+4. **View Results** - Watch the recording card update with transcription and scam analysis
+5. **Get Alerts** - Receive browser notifications if a high-risk scam is detected
+
+## Features
+
+### Recording & Storage
+- Browser-based audio recording using Web Audio API
+- Upload to MinIO (S3-compatible) storage
+- Support for multiple audio formats (WebM, WAV, MP3)
+
+### Transcription
+- Automatic speech-to-text using OpenAI Whisper
+- Multi-language support
+- Duration tracking
+
+### Scam Detection
+- AI-powered analysis using Anthropic Claude Sonnet
+- Risk levels: Low, Medium, High, Critical
+- Confidence scoring
+- Specific scam indicator detection:
+  - Urgency tactics
+  - Personal information requests
+  - Payment via gift cards/wire transfers
+  - Government impersonation
+  - Tech support scams
+  - Prize/lottery scams
+  - Threats and intimidation
+
+### Notifications
+- Real-time browser notifications
+- Automatic alerts for high-risk calls
+- Vibration patterns based on risk level
+
+### PWA Features
+- Installable on mobile and desktop
+- Offline support
+- Native-like experience
 
 ## API Endpoints
 
-- `GET /api/health` - Service health check
+### Recordings
 
-## Usage Examples
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/recordings/upload` | Upload audio recording |
+| GET | `/api/v1/recordings/{id}` | Get recording details |
+| GET | `/api/v1/recordings/` | List all recordings |
+| DELETE | `/api/v1/recordings/{id}` | Delete recording |
 
-### Database (Core)
-```typescript
-import { db } from '@/core/db';
+### Health
 
-// Connect
-await db.connect();
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Health check |
+| GET | `/` | API info |
 
-// Check connection
-const connected = db.isConnected();
+## Development
 
-// Get mongoose connection
-const connection = db.getConnection();
+### Backend
+
+```bash
+# Run with auto-reload
+cd backend
+uv run python run.py
+
+# Format code
+uv run black app/
+
+# Lint
+uv run ruff check app/
 ```
 
-### File Service
-```typescript
-import { fileService } from '@/services/file.service';
+### Frontend
 
-// Upload file
-const url = await fileService.upload(
-  'my-bucket',
-  'file.jpg',
-  buffer,
-  'image/jpeg'
-);
+```bash
+# Development server
+npm run dev
 
-// List files
-const files = await fileService.list('my-bucket');
+# Build for production
+npm run build
 
-// Get URL
-const url = fileService.getUrl('my-bucket', 'file.jpg');
+# Preview production build
+npm run preview
 
-// Check if exists
-const exists = await fileService.exists('my-bucket', 'file.jpg');
-
-// Delete file
-await fileService.delete('my-bucket', 'file.jpg');
-
-// Get metadata
-const meta = await fileService.getMetadata('my-bucket', 'file.jpg');
+# Lint
+npm run lint
 ```
 
-### Direct MinIO Client (Advanced)
-```typescript
-import { minioClient } from '@/core/minio';
+### Database
 
-const client = minioClient.getClient();
-// Use raw MinIO client for advanced operations
+```bash
+# Access MongoDB
+docker exec -it call-interceptor-mongo mongosh -u admin -p password123
+
+# View recordings collection
+use wellness
+db.recordings.find().pretty()
 ```
 
-## PWA
+### Storage
 
-PWA enabled in production. Service worker auto-generated.
+MinIO Console: http://localhost:9001
+- Username: minioadmin
+- Password: minioadmin123
 
-Manifest: `/manifest.json`
+## Future Enhancements
 
-## Recommended Structure
+### Twilio Integration
+- Incoming call webhooks
+- Conference call routing
+- Real-time audio streaming
+- Call forwarding based on scam detection
 
-```
-src/
-├── core/              # Infrastructure clients
-│   ├── db.ts         # MongoDB
-│   └── minio.ts      # MinIO
-├── services/          # Business logic
-│   └── file.service.ts
-├── models/            # Database models (Mongoose)
-├── repositories/      # Data access layer (optional)
-└── components/        # React components
-```
+### Celery Task Queue
+- Asynchronous processing
+- Retry logic for failed transcriptions
+- Scheduled cleanup of old recordings
 
-## Next Steps
+### ElevenLabs Integration
+- Text-to-speech warnings
+- Voice cloning detection
+- Real-time audio generation
 
-1. Create models in `src/models/`
-2. Add services in `src/services/`
-3. Build API routes in `app/api/`
-4. Add components in `src/components/`
+### Enhanced Notifications
+- SMS alerts via Twilio
+- Email notifications
+- Family member notifications
+- Emergency contact alerts
+
+### Machine Learning
+- Custom scam detection models
+- Pattern recognition
+- Historical analysis
+- Caller ID reputation scoring
+
+## Troubleshooting
+
+### Backend fails to start
+- Check MongoDB is running: `docker-compose ps`
+- Verify API keys in `.env`
+- Check Python version: `python --version` (needs 3.11+)
+
+### Frontend can't connect to backend
+- Verify backend is running on port 8000
+- Check CORS settings in `backend/app/core/config.py`
+- Clear browser cache and reload
+
+### Recording not working
+- Grant microphone permission in browser
+- Check browser compatibility (Chrome/Edge recommended)
+- Verify HTTPS or localhost (required for microphone access)
+
+### Transcription fails
+- Verify OpenAI API key is valid
+- Check audio file format is supported
+- Ensure audio has clear speech content
+
+## License
+
+This is a proof-of-concept for educational purposes.
+
+## Security Notes
+
+- Never commit `.env` file with real API keys
+- Use HTTPS in production
+- Implement proper authentication before deploying
+- Sanitize user inputs
+- Rotate API keys regularly
+- Monitor API usage and costs
+
+## Contributing
+
+This is a POC project. For production use, consider:
+- Adding user authentication (JWT, OAuth)
+- Implementing rate limiting
+- Adding comprehensive error handling
+- Writing unit and integration tests
+- Setting up CI/CD pipeline
+- Implementing proper logging and monitoring

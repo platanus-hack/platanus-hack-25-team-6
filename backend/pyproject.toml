@@ -1,0 +1,38 @@
+[project]
+name = "call-interceptor-backend"
+version = "0.1.0"
+description = "FastAPI backend for Call Interceptor POC"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "python-multipart>=0.0.6",
+    "python-dotenv>=1.0.0",
+    "anthropic>=0.40.0",
+    "motor>=3.3.0",
+    "pymongo>=4.6.0",
+    "boto3>=1.34.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "openai>=1.51.0",
+    "aiofiles>=23.2.0",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "websockets>=12.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
+    "black>=23.11.0",
+    "ruff>=0.1.6",
+]

@@ -3,82 +3,63 @@ version: '3.8'
 services:
   mongodb:
     image: mongo:7.0
-    container_name: wellness-mongodb
-    restart: always
-    ports:
-      - "27017:27017"
+    container_name: call-interceptor-mongo
+    restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password123
       MONGO_INITDB_DATABASE: wellness
+    ports:
+      - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-      - mongodb_config:/data/configdb
     networks:
-      - wellness-network
-
-  mongo-express:
-    image: mongo-express:latest
-    container_name: wellness-mongo-express
-    restart: always
-    ports:
-      - "8081:8081"
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
-      ME_CONFIG_MONGODB_ADMINPASSWORD: password123
-      ME_CONFIG_MONGODB_URL: mongodb://admin:password123@mongodb:27017/
-      ME_CONFIG_BASICAUTH: false
-    depends_on:
-      - mongodb
-    networks:
-      - wellness-network
+      - call-interceptor-network
 
   minio:
     image: minio/minio:latest
-    container_name: wellness-minio
-    restart: always
-    ports:
-      - "9000:9000"      # API
-      - "9001:9001"      # Console UI
+    container_name: call-interceptor-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - minio_data:/data
-    command: server /data --console-address ":9001"
     networks:
-      - wellness-network
+      - call-interceptor-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 20s
       retries: 3
 
-  # MinIO Client - Creates default bucket on startup
-  createbuckets:
+  # MinIO bucket initialization
+  minio-init:
     image: minio/mc:latest
-    container_name: wellness-minio-setup
+    container_name: call-interceptor-minio-init
     depends_on:
       - minio
-    networks:
-      - wellness-network
     entrypoint: >
       /bin/sh -c "
       sleep 5;
       /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin123;
-      /usr/bin/mc mb myminio/wellness-videos --ignore-existing;
-      /usr/bin/mc mb myminio/wellness-images --ignore-existing;
-      /usr/bin/mc mb myminio/wellness-assessments --ignore-existing;
-      /usr/bin/mc anonymous set download myminio/wellness-videos;
-      /usr/bin/mc anonymous set download myminio/wellness-images;
+      /usr/bin/mc mb myminio/recordings --ignore-existing;
+      /usr/bin/mc anonymous set download myminio/recordings;
       exit 0;
       "
+    networks:
+      - call-interceptor-network
 
 volumes:
   mongodb_data:
-  mongodb_config:
+    driver: local
   minio_data:
+    driver: local
 
 networks:
-  wellness-network:
+  call-interceptor-network:
     driver: bridge
