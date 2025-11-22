@@ -3,6 +3,7 @@ import Landing from './components/Landing';
 import PhoneInput from './components/PhoneInput';
 import VerificationCode from './components/VerificationCode';
 import Dashboard from './components/Dashboard';
+import InstallPrompt from './components/InstallPrompt';
 
 function App() {
   const [view, setView] = useState('landing'); // 'landing', 'phone', 'verification', 'dashboard'
@@ -48,10 +49,20 @@ function App() {
   }
 
   if (view === 'dashboard') {
-    return <Dashboard onLogout={handleLogout} />;
+    return (
+      <>
+        <Dashboard onLogout={handleLogout} />
+        <InstallPrompt />
+      </>
+    );
   }
 
-  return <Landing onGetStarted={handleGetStarted} />;
+  return (
+    <>
+      <Landing onGetStarted={handleGetStarted} />
+      <InstallPrompt />
+    </>
+  );
 }
 
 export default App;
