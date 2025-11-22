@@ -167,6 +167,8 @@ async def get_recording(recording_id: str):
         scam_risk_level=recording.get("scam_risk_level"),
         scam_confidence=recording.get("scam_confidence"),
         scam_indicators=recording.get("scam_indicators"),
+        caller_number=recording.get("caller_number"),
+        called_number=recording.get("called_number"),
         created_at=recording.get("created_at"),
         updated_at=recording.get("updated_at")
     )
@@ -195,6 +197,8 @@ async def list_recordings(user_id: str = None, limit: int = 50, skip: int = 0):
             scam_risk_level=rec.get("scam_risk_level"),
             scam_confidence=rec.get("scam_confidence"),
             scam_indicators=rec.get("scam_indicators"),
+            caller_number=rec.get("caller_number"),
+            called_number=rec.get("called_number"),
             created_at=rec.get("created_at"),
             updated_at=rec.get("updated_at")
         )

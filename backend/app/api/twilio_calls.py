@@ -54,7 +54,9 @@ class TwilioCallSession:
                 user_id=self.caller_number,
                 file_path=f"twilio/{self.call_sid}",
                 status=RecordingStatus.PROCESSING,
-                transcript=""
+                transcript="",
+                caller_number=self.caller_number,
+                called_number=self.called_number
             )
 
             recording_dict = recording.model_dump(by_alias=True, exclude={"id"})

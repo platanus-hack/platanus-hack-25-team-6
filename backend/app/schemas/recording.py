@@ -18,6 +18,8 @@ class RecordingResponse(BaseModel):
     scam_risk_level: Optional[ScamRiskLevel]
     scam_confidence: Optional[float]
     scam_indicators: Optional[list[str]]
+    caller_number: Optional[str]
+    called_number: Optional[str]
     created_at: datetime
     updated_at: datetime
 

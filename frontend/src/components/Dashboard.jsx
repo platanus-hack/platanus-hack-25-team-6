@@ -1,61 +1,117 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Shield, Phone, AlertTriangle, Search, Filter } from 'lucide-react';
 import CallDetail from './CallDetail';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
 function Dashboard({ onLogout }) {
   const [selectedCall, setSelectedCall] = useState(null);
+  const [recordings, setRecordings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - replace with actual API calls
-  const calls = [
-    {
-      id: 1,
-      title: 'Banco Falso',
-      phoneNumber: '+56 9 8888 7777',
-      time: 'Hoy, 14:30',
-      duration: '2m 15s',
-      status: 'FRAUDE',
-      risk: 95,
-      analysis: 'Solicitud urgente de claves web.',
-      icon: 'alert',
-      transcript: [
-        { speaker: 'Banco Falso', text: 'Buenos días, llamamos del banco. Necesitamos que actualice sus claves.' },
-        { speaker: 'Usuario', text: '¿De qué banco?' },
-        { speaker: 'Banco Falso', text: 'Del Banco de Chile. Es urgente, su cuenta está bloqueada.' },
-      ],
-    },
-    {
-      id: 2,
-      title: 'Mamá',
-      phoneNumber: '+56 9 5555 0000',
-      time: 'Hoy, 10:15',
-      duration: '15m 00s',
-      status: 'SEGURA',
-      risk: 5,
-      analysis: 'Conversación familiar normal.',
-      icon: 'safe',
-      transcript: [
-        { speaker: 'Mamá', text: 'Hola hijo, ¿cómo estás?' },
-        { speaker: 'Usuario', text: 'Bien mamá, ¿y tú?' },
-        { speaker: 'Mamá', text: 'Todo bien. ¿Vas a venir a almorzar el domingo?' },
-      ],
-    },
-    {
-      id: 3,
-      title: '+56 2 2333 4444',
-      phoneNumber: '+56 2 2333 4444',
-      time: 'Ayer, 18:45',
-      duration: '1m 20s',
-      status: 'SOSPECHOSA',
-      risk: 60,
-      analysis: 'Oferta de plan telefónico agresiva.',
-      icon: 'warning',
-      transcript: [
-        { speaker: '+56 2 2333 4444', text: 'Buenas tardes, tenemos una oferta especial de telefonía.' },
-        { speaker: 'Usuario', text: 'No me interesa.' },
-        { speaker: '+56 2 2333 4444', text: 'Espere, es una oferta única, solo por hoy.' },
-      ],
-    },
-  ];
+  // Fetch recordings from API
+  useEffect(() => {
+    const fetchRecordings = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/recordings/`);
+        const data = await response.json();
+        setRecordings(data);
+      } catch (error) {
+        console.error('Error fetching recordings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecordings();
+    // Poll every 5 seconds to get new recordings
+    const interval = setInterval(fetchRecordings, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Map API data to Dashboard format
+  const mapRecordingToCall = (recording) => {
+    const riskLevel = recording.scam_risk_level || 'low';
+    const confidence = recording.scam_confidence || 0;
+    const riskPercent = Math.round(confidence * 100);
+
+    // Determine status based on risk level
+    let status = 'SEGURA';
+    let icon = 'safe';
+    if (riskLevel === 'critical' || riskLevel === 'high') {
+      status = 'FRAUDE';
+      icon = 'alert';
+    } else if (riskLevel === 'medium') {
+      status = 'SOSPECHOSA';
+      icon = 'warning';
+    }
+
+    // Format timestamp
+    const createdAt = new Date(recording.created_at);
+    const now = new Date();
+    const isToday = createdAt.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = createdAt.toDateString() === yesterday.toDateString();
+
+    let timeStr = '';
+    if (isToday) {
+      timeStr = `Hoy, ${createdAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (isYesterday) {
+      timeStr = `Ayer, ${createdAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      timeStr = createdAt.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) + ', ' +
+                createdAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Format duration
+    let durationStr = '0s';
+    if (recording.duration) {
+      const mins = Math.floor(recording.duration / 60);
+      const secs = Math.floor(recording.duration % 60);
+      durationStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+    }
+
+    // Get phone number from metadata or use ID
+    const phoneNumber = recording.caller_number || recording.id.substring(0, 8);
+    const title = recording.caller_number || `Grabación ${recording.id.substring(0, 8)}`;
+
+    // Create analysis summary
+    const indicators = recording.scam_indicators || [];
+    const analysis = indicators.length > 0
+      ? indicators.slice(0, 2).join(', ') + '.'
+      : recording.scam_risk_level === 'low'
+        ? 'Conversación sin indicadores de riesgo.'
+        : 'Análisis en proceso.';
+
+    // Parse transcript for CallDetail
+    const transcript = [];
+    if (recording.transcript) {
+      // Split by speaker changes or just show the full transcript
+      transcript.push({
+        speaker: 'Conversación',
+        text: recording.transcript
+      });
+    }
+
+    return {
+      id: recording.id,
+      title,
+      phoneNumber,
+      time: timeStr,
+      duration: durationStr,
+      status,
+      risk: riskPercent,
+      analysis,
+      icon,
+      transcript,
+      fullData: recording, // Keep original data for details
+      caller_number: recording.caller_number,
+      called_number: recording.called_number,
+    };
+  };
+
+  const calls = recordings.map(mapRecordingToCall);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -145,65 +201,81 @@ function Dashboard({ onLogout }) {
           </div>
         </div>
 
-        {/* Calls List */}
-        <div className="space-y-4 sm:space-y-5">
-          {calls.map((call) => (
-            <div
-              key={call.id}
-              onClick={() => setSelectedCall(call)}
-              className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:border-slate-700 hover:bg-slate-900/70 transition-all cursor-pointer"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                {/* Icon */}
-                <div className="flex-shrink-0">{getIcon(call.icon)}</div>
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12 sm:py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-slate-400">Cargando llamadas...</p>
+          </div>
+        )}
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">
-                        {call.title}
-                      </h3>
-                      <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-slate-400">
-                        <span>{call.time}</span>
-                        <span>|</span>
-                        <span>{call.duration}</span>
+        {/* Calls List */}
+        {!loading && calls.length > 0 && (
+          <div className="space-y-4 sm:space-y-5">
+            {calls.map((call) => (
+              <div
+                key={call.id}
+                onClick={() => setSelectedCall(call)}
+                className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:border-slate-700 hover:bg-slate-900/70 transition-all cursor-pointer"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  {/* Icon */}
+                  <div className="flex-shrink-0">{getIcon(call.icon)}</div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">
+                          {call.title}
+                        </h3>
+                        <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-slate-400">
+                          <span>{call.time}</span>
+                          <span>|</span>
+                          <span>{call.duration}</span>
+                          {call.caller_number && (
+                            <>
+                              <span>|</span>
+                              <span>{call.caller_number}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Status Badge */}
+                      <div className="flex flex-col items-start sm:items-end gap-2">
+                        <span
+                          className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg font-bold text-xs sm:text-sm ${getStatusColor(
+                            call.status
+                          )}`}
+                        >
+                          {call.status}
+                        </span>
+                        <span className="text-xs sm:text-sm text-slate-400">
+                          Riesgo:{' '}
+                          <span className={`font-bold ${getRiskColor(call.risk)}`}>
+                            {call.risk}%
+                          </span>
+                        </span>
                       </div>
                     </div>
 
-                    {/* Status Badge */}
-                    <div className="flex flex-col items-start sm:items-end gap-2">
-                      <span
-                        className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg font-bold text-xs sm:text-sm ${getStatusColor(
-                          call.status
-                        )}`}
-                      >
-                        {call.status}
-                      </span>
-                      <span className="text-xs sm:text-sm text-slate-400">
-                        Riesgo:{' '}
-                        <span className={`font-bold ${getRiskColor(call.risk)}`}>
-                          {call.risk}%
-                        </span>
-                      </span>
+                    {/* AI Analysis */}
+                    <div className="bg-slate-950/50 rounded-lg p-3 sm:p-4">
+                      <h4 className="text-blue-400 font-semibold text-xs sm:text-sm mb-1 sm:mb-2">
+                        ANÁLISIS IA:
+                      </h4>
+                      <p className="text-slate-300 text-sm sm:text-base">{call.analysis}</p>
                     </div>
-                  </div>
-
-                  {/* AI Analysis */}
-                  <div className="bg-slate-950/50 rounded-lg p-3 sm:p-4">
-                    <h4 className="text-blue-400 font-semibold text-xs sm:text-sm mb-1 sm:mb-2">
-                      ANÁLISIS IA:
-                    </h4>
-                    <p className="text-slate-300 text-sm sm:text-base">{call.analysis}</p>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Empty State (shown when no calls) */}
-        {calls.length === 0 && (
+        {!loading && calls.length === 0 && (
           <div className="text-center py-12 sm:py-16">
             <Shield className="w-16 h-16 sm:w-20 sm:h-20 text-slate-700 mx-auto mb-4" />
             <h3 className="text-lg sm:text-xl font-semibold text-slate-400 mb-2">

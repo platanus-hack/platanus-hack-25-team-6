@@ -30,6 +30,8 @@ class Recording(BaseModel):
     scam_risk_level: Optional[ScamRiskLevel] = None
     scam_confidence: Optional[float] = None
     scam_indicators: Optional[list[str]] = None
+    caller_number: Optional[str] = None  # Phone number of caller (From)
+    called_number: Optional[str] = None  # Phone number called (To)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
