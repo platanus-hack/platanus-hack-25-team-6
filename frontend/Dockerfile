@@ -1,14 +1,14 @@
-# Build stage - use Debian-based image to avoid Alpine/musl issues with Rollup
-FROM node:18-slim AS builder
+# Build stage - use full node image which includes build tools
+FROM node:22 AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy only package.json (not the lock file to force fresh install for Linux)
+COPY package.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies - using install instead of ci to generate fresh lock file for Linux
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -21,7 +21,7 @@ ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 # Production stage
-FROM node:18-slim
+FROM node:22
 
 WORKDIR /app
 
