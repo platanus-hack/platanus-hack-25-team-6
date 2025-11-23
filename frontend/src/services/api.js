@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { authUtils } from '../utils/auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -8,6 +9,32 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Add JWT token to requests if available
+api.interceptors.request.use(
+  (config) => {
+    const token = authUtils.getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Handle 401 responses by logging out
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      authUtils.logout();
+      window.location.href = '/';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const recordingAPI = {
   uploadRecording: async (audioBlob, userId = null) => {
