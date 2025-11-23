@@ -15,7 +15,6 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
   const processorRef = useRef(null);
   const analyserRef = useRef(null);
   const timerRef = useRef(null);
-  const analysisIntervalRef = useRef(null);
 
   const [analyser, setAnalyser] = useState(null);
 
@@ -242,16 +241,9 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
 
-      // Start periodic analysis (every 5 seconds for faster detection)
-      console.log('[RealtimeRecorder] Starting periodic analysis every 5 seconds');
-      analysisIntervalRef.current = setInterval(() => {
-        if (isConnectedRef.current) {
-          console.log('[RealtimeRecorder] 🔍 Requesting periodic scam analysis...');
-          requestAnalysis();
-        }
-      }, 5000); // Analyze every 5 seconds (was 10)
-
-      console.log('[RealtimeRecorder] Recording started successfully');
+      // Analysis now happens automatically after each transcription (backend-side)
+      // No need for periodic polling
+      console.log('[RealtimeRecorder] Recording started successfully - analysis will trigger automatically');
     } catch (err) {
       console.error('[RealtimeRecorder] Error starting recording:', err);
       setError('Error al acceder al micrófono. Por favor, concede los permisos necesarios.');
@@ -284,12 +276,6 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
       timerRef.current = null;
     }
 
-    // Stop periodic analysis
-    if (analysisIntervalRef.current) {
-      clearInterval(analysisIntervalRef.current);
-      analysisIntervalRef.current = null;
-    }
-
     setAnalyser(null);
     setIsRecording(false);
   };
@@ -298,9 +284,6 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
-      }
-      if (analysisIntervalRef.current) {
-        clearInterval(analysisIntervalRef.current);
       }
       if (processorRef.current) {
         processorRef.current.disconnect();

@@ -126,6 +126,10 @@ class RealtimeSession:
                     # Update database
                     await self.update_recording()
 
+                    # Automatically trigger analysis after each new transcription
+                    print(f"[Session {self.session_id}] Auto-triggering analysis after new transcript")
+                    await self.analyze_with_claude()
+
                 elif event_type == "error":
                     error_msg = event.get("error", {}).get("message", "Unknown error")
                     await self.websocket.send_json({
@@ -443,10 +447,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 elif data.get("type") == "stop":
                     print(f"[Session {session_id}] Stop requested by client")
                     break
-                elif data.get("type") == "analyze":
-                    # Request immediate analysis using Claude
-                    print(f"[Session {session_id}] Analysis requested")
-                    await session.analyze_with_claude()
+                # Note: "analyze" type removed - analysis now happens automatically after each transcription
 
     except WebSocketDisconnect:
         pass

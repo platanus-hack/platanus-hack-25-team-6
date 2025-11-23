@@ -81,7 +81,7 @@ NO intentes analizar o responder. Otro sistema (Claude) hará el análisis.""",
                     "type": "server_vad",
                     "threshold": 0.7,  # Higher threshold to reduce sensitivity to background noise/music
                     "prefix_padding_ms": 300,  # Standard padding to avoid cutting off speech
-                    "silence_duration_ms": 1000,  # Longer silence required to avoid transcribing music/noise
+                    "silence_duration_ms": 500,  # Longer silence required to avoid transcribing music/noise
                     "create_response": False  # Critical: Only transcribe, never auto-respond
                 },
                 "temperature": 0.6,  # Minimum allowed by OpenAI (0.6)
