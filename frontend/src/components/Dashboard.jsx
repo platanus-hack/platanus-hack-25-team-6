@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Shield, Phone, AlertTriangle, Search, Filter } from 'lucide-react';
 import CallDetail from './CallDetail';
 import { TwilioCallMonitor } from './TwilioCallMonitor';
+import { formatDateTime } from '../utils/dateFormatter';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -48,22 +49,28 @@ function Dashboard({ onLogout }) {
       icon = 'warning';
     }
 
-    // Format timestamp
-    const createdAt = new Date(recording.created_at);
-    const now = new Date();
-    const isToday = createdAt.toDateString() === now.toDateString();
-    const yesterday = new Date(now);
+    // Format timestamp to Chile timezone
+    const { date, time } = formatDateTime(recording.created_at);
+
+    // Parse the Chile date to check if it's today or yesterday
+    const [day, month, year] = date.split('-').map(Number);
+    const createdAtChile = new Date(year, month - 1, day);
+
+    const nowChile = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+    const isToday = createdAtChile.toDateString() === nowChile.toDateString();
+
+    const yesterday = new Date(nowChile);
     yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = createdAt.toDateString() === yesterday.toDateString();
+    const isYesterday = createdAtChile.toDateString() === yesterday.toDateString();
 
     let timeStr = '';
     if (isToday) {
-      timeStr = `Hoy, ${createdAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+      timeStr = `Hoy, ${time}`;
     } else if (isYesterday) {
-      timeStr = `Ayer, ${createdAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+      timeStr = `Ayer, ${time}`;
     } else {
-      timeStr = createdAt.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) + ', ' +
-                createdAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      const [d, m] = date.split('-');
+      timeStr = `${d}-${m}, ${time}`;
     }
 
     // Format duration
@@ -187,26 +194,9 @@ function Dashboard({ onLogout }) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
-            Monitor de Llamadas
-          </h1>
-          {activeTab === 'history' && (
-            <div className="flex items-center gap-3">
-              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <Search className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
-              </button>
-              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <Filter className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
-              </button>
-            </div>
-          )}
-        </div>
-
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 sm:mb-8 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-1">
+        <div className="flex gap-2 mb-6 sm:mb-6 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-1">
           <button
             onClick={() => setActiveTab('live')}
             className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all ${
@@ -237,6 +227,19 @@ function Dashboard({ onLogout }) {
         )}
 
         {/* History Tab */}
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
+          {activeTab === 'history' && (
+            <div className="flex items-center gap-3">
+              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                <Search className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
+              </button>
+              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                <Filter className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
+              </button>
+            </div>
+          )}
+        </div>
         {activeTab === 'history' && (
           <>
             {/* Loading State */}

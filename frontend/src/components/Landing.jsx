@@ -81,12 +81,22 @@ function Landing({ onGetStarted }) {
           {/* Features */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 justify-center items-center text-slate-300 text-xs sm:text-sm md:text-base px-2">
             <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
-              <span>Sin descargas extra</span>
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M13.5 2L4 14h7l-1.5 8L20 10h-7l1.5-8z"/>
+              </svg>
+              <span>Ultra rápida</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
-              <span>100% Privado</span>
+              {/* Shield icon from Lucidchart SVG, colorized for this design */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 2.25c-.22 0-.44.044-.64.129l-7 2.916A1.25 1.25 0 0 0 3 6.417v6.708c0 4.147 3.187 7.87 8.37 9.712a1.24 1.24 0 0 0 .86 0c5.183-1.842 8.37-5.565 8.37-9.712V6.417a1.25 1.25 0 0 0-.36-.872l-7-2.916A1.251 1.251 0 0 0 12 2.25zm0 1.742 6.75 2.814v6.319c0 3.427-2.835 6.497-6.75 8.1-3.915-1.603-6.75-4.673-6.75-8.1V6.806L12 3.992z"/>
+              </svg>
+              <span>100% Segura</span>
             </div>
           </div>
         </div>

@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useRealtimeConnection } from '../hooks/useRealtimeConnection';
 import { AudioVisualizer } from './AudioVisualizer';
 import { Mic, Square, AlertTriangle, CheckCircle, Info } from 'lucide-react';
-import './RealtimeRecorder.css';
 
 export const RealtimeRecorder = ({ onScamDetected }) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -56,7 +55,6 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
   const showRiskNotification = (analysis) => {
     // Request notification permission if not granted
     if (!('Notification' in window)) {
-      console.log('Este navegador no soporta notificaciones');
       return;
     }
 
@@ -328,24 +326,24 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
   };
 
   return (
-    <div className="realtime-recorder">
-      <div className="recorder-header">
-        <h2>🔴 Detección de Estafas en Vivo</h2>
-        {error && <div className="error-message">{error}</div>}
+    <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 md:p-8 shadow-2xl mb-6 sm:mb-8 text-white">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3">🔴 Detección de Estafas en Vivo</h2>
+        {error && <div className="bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm sm:text-base">{error}</div>}
       </div>
 
-      <div className="recorder-status">
+      <div className="text-center my-4 sm:my-6">
         {isRecording && (
-          <div className="status-indicator">
-            <div className="pulse-dot" style={{ background: '#e53e3e' }}></div>
-            <span>EN VIVO - Monitoreando conversación...</span>
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4 text-base sm:text-lg font-semibold text-red-400">
+            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+            <span className="text-sm sm:text-base">EN VIVO - Monitoreando conversación...</span>
           </div>
         )}
 
-        <div className="time-display">{formatTime(recordingTime)}</div>
+        <div className="text-5xl sm:text-6xl md:text-7xl font-bold font-mono text-slate-200 drop-shadow-lg">{formatTime(recordingTime)}</div>
 
         {sessionId && (
-          <div className="session-info">
+          <div className="mt-2 text-xs sm:text-sm text-slate-400 font-mono">
             Session ID: {sessionId.substring(0, 8)}...
           </div>
         )}
@@ -356,47 +354,56 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
 
       {currentAnalysis && (
         <div
-          className="risk-indicator"
+          className="bg-white/10 border-4 rounded-xl p-4 sm:p-5 md:p-6 my-4 sm:my-6 backdrop-blur-md animate-in slide-in-from-top duration-300"
           style={{ borderColor: getRiskColor(currentAnalysis.risk_level) }}
         >
-          <div className="risk-header">
+          <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
             <div
-              className="risk-icon"
+              className="flex-shrink-0 animate-pulse"
               style={{ color: getRiskColor(currentAnalysis.risk_level) }}
             >
               {getRiskIcon(currentAnalysis.risk_level)}
             </div>
-            <div className="risk-info">
-              <div className="risk-level" style={{ color: getRiskColor(currentAnalysis.risk_level) }}>
+            <div className="flex-1">
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2 tracking-wide" style={{ color: getRiskColor(currentAnalysis.risk_level) }}>
                 RIESGO {currentAnalysis.risk_level.toUpperCase()}
               </div>
               {currentAnalysis.indicators && currentAnalysis.indicators.length > 0 && (
-                <div className="risk-indicators">
+                <div className="text-sm sm:text-base text-slate-200 opacity-90">
                   Indicadores: {currentAnalysis.indicators.join(', ')}
                 </div>
               )}
             </div>
           </div>
           {currentAnalysis.text && (
-            <div className="risk-analysis">{currentAnalysis.text}</div>
+            <div className="bg-black/20 rounded-lg p-3 sm:p-4 text-sm sm:text-base leading-relaxed text-slate-200">
+              {currentAnalysis.text}
+            </div>
           )}
         </div>
       )}
 
-      <div className="transcript-container">
-        <h3>Transcripción en Vivo</h3>
-        <div className="transcript-messages">
+      <div className="bg-black/20 rounded-xl p-3 sm:p-4 md:p-6 my-4 sm:my-6 max-h-64 sm:max-h-80 md:max-h-96 overflow-y-auto">
+        <h3 className="text-lg sm:text-xl font-bold text-slate-200 mb-3 sm:mb-4">Transcripción en Vivo</h3>
+        <div className="flex flex-col gap-3 sm:gap-4">
           {transcript.length === 0 && !isRecording && (
-            <div className="empty-transcript">
+            <div className="text-center py-6 sm:py-8 text-slate-400 italic text-sm sm:text-base">
               Inicia la grabación para ver la transcripción de la conversación en tiempo real
             </div>
           )}
           {transcript.map((item, index) => (
-            <div key={index} className={`transcript-message ${item.role}`}>
-              <div className="message-role">
+            <div
+              key={index}
+              className={`bg-white/5 border-l-4 p-3 sm:p-4 rounded-lg animate-in fade-in duration-300 ${
+                item.role === 'user'
+                  ? 'border-blue-500 bg-blue-500/10'
+                  : 'border-purple-500 bg-purple-500/10'
+              }`}
+            >
+              <div className="text-xs sm:text-sm font-bold text-slate-400 mb-1 sm:mb-2 tracking-wider">
                 {item.role === 'user' ? '🎤 CONVERSACIÓN' : '🔍 ANÁLISIS DE RIESGO'}:
               </div>
-              <div className="message-text" style={{ whiteSpace: 'pre-line' }}>
+              <div className="text-sm sm:text-base text-slate-200 whitespace-pre-line leading-relaxed">
                 {item.text}
               </div>
             </div>
@@ -404,15 +411,15 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
         </div>
       </div>
 
-      <div className="recorder-controls">
+      <div className="flex justify-center mt-6 sm:mt-8">
         {!isRecording ? (
-          <button onClick={startRecording} className="btn btn-primary btn-large">
-            <Mic size={24} />
+          <button onClick={startRecording} className="flex items-center justify-center gap-2 sm:gap-3 px-8 sm:px-10 py-4 sm:py-5 bg-blue-600 text-white rounded-lg font-semibold text-base sm:text-lg md:text-xl hover:bg-blue-700 transition-all hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto sm:min-w-[250px]">
+            <Mic size={24} className="w-5 h-5 sm:w-6 sm:h-6" />
             <span>Iniciar Monitoreo en Vivo</span>
           </button>
         ) : (
-          <button onClick={stopRecording} className="btn btn-danger btn-large">
-            <Square size={24} />
+          <button onClick={stopRecording} className="flex items-center justify-center gap-2 sm:gap-3 px-8 sm:px-10 py-4 sm:py-5 bg-red-600 text-white rounded-lg font-semibold text-base sm:text-lg md:text-xl hover:bg-red-700 transition-all hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto sm:min-w-[250px]">
+            <Square size={24} className="w-5 h-5 sm:w-6 sm:h-6" />
             <span>Detener Monitoreo</span>
           </button>
         )}
