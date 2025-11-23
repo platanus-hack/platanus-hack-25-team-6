@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     database_name: str = "wellness"
 
     # Storage (MinIO)
-    minio_endpoint: str = "localhost:9000"
+    minio_endpoint: str = "http://localhost:9000"
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin123"
     minio_use_ssl: bool = False
