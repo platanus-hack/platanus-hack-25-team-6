@@ -330,7 +330,7 @@ function CallDetail({ call, onClose }) {
             onClick={onClose}
             className="w-full bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 sm:py-4 rounded-xl font-semibold text-sm sm:text-base transition-all"
           >
-            Cerrar Expediente
+            Cerrar
           </button>
         </div>
       </div>
