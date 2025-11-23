@@ -43,7 +43,7 @@ jobs:
           # MinIO Configuration (Local - from docker-compose)
           MINIO_ROOT_USER=minioadmin
           MINIO_ROOT_PASSWORD=minioadmin123
-          MINIO_ENDPOINT=http://minio:9000
+          MINIO_ENDPOINT=minio:9000
           MINIO_BUCKET_NAME=recordings
 
           # Twilio Configuration
