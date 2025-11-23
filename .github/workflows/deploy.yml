@@ -83,13 +83,13 @@ jobs:
           set +a
 
           # Stop existing containers
-          docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml down
 
           # Pull latest images and rebuild
-          docker-compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
 
           # Start all services
-          docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
           # Clean up old images
           docker image prune -af
@@ -113,7 +113,7 @@ jobs:
           curl -f http://localhost:3000 || echo "Frontend health check failed"
 
           echo "Container logs (last 20 lines):"
-          docker-compose -f /opt/app/docker-compose.yml -f /opt/app/docker-compose.prod.yml logs --tail=20
+          docker compose -f /opt/app/docker-compose.yml -f /opt/app/docker-compose.prod.yml logs --tail=20
           ENDSSH
 
       - name: Deployment notification
