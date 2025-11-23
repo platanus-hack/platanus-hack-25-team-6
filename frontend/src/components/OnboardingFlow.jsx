@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Download, Phone, Smartphone, Shield, CheckCircle, ArrowRight, Bell, Users, UserPlus, Trash2 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import api from '../services/api';
@@ -6,6 +6,7 @@ import api from '../services/api';
 function OnboardingFlow({ onComplete }) {
   const [currentStep, setCurrentStep] = useState(0);
   const { isInstallable, promptInstall } = usePWAInstall();
+  const stepContentRef = useRef(null);
 
   const [trustedContacts, setTrustedContacts] = useState([]);
 
@@ -68,52 +69,61 @@ function OnboardingFlow({ onComplete }) {
 
   const CurrentStepComponent = steps[currentStep].component;
 
+  // Reset scroll position when step changes
+  useEffect(() => {
+    if (stepContentRef.current) {
+      stepContentRef.current.scrollTop = 0;
+    }
+  }, [currentStep]);
+
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-3 md:p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl sm:rounded-2xl max-w-2xl w-full relative overflow-hidden max-h-[96vh] sm:max-h-[95vh] md:max-h-[90vh] flex flex-col">
-        {/* Skip button */}
-        <button
-          onClick={handleSkip}
-          className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 text-slate-400 hover:text-white transition-colors z-10"
-          aria-label="Saltar"
-        >
-          <X className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-        </button>
-
-        {/* Progress indicator */}
-        <div className="flex gap-1 sm:gap-1.5 md:gap-2 p-2 sm:p-3 md:p-4 bg-slate-950/50">
-          {steps.map((step, index) => (
-            <div
-              key={step.id}
-              className={`flex-1 h-1 sm:h-1.5 rounded-full transition-all ${
-                index <= currentStep ? 'bg-gradient-to-r from-purple-500 to-pink-600' : 'bg-slate-700'
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Step content */}
-        <div className="p-4 sm:p-6 md:p-8 flex-1 flex flex-col min-h-0">
-          <CurrentStepComponent
-            onNext={handleNext}
-            isInstallable={isInstallable}
-            promptInstall={promptInstall}
-            trustedContacts={trustedContacts}
-            setTrustedContacts={setTrustedContacts}
-          />
-        </div>
-
-        {/* Navigation */}
-        <div className="flex justify-between items-center p-3 sm:p-4 md:p-6 bg-slate-950/50 border-t border-slate-800">
-          <span className="text-[10px] sm:text-xs md:text-sm text-slate-400">
-            Paso {currentStep + 1} de {steps.length}
-          </span>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="min-h-full flex items-center justify-center p-2 sm:p-3 md:p-4 py-4">
+        <div className="bg-slate-900 border border-slate-700 rounded-xl sm:rounded-2xl max-w-2xl w-full relative overflow-y-auto flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-1.5rem)] md:max-h-[calc(100vh-2rem)]" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {/* Skip button */}
           <button
             onClick={handleSkip}
-            className="text-[10px] sm:text-xs md:text-sm text-slate-400 hover:text-white transition-colors"
+            className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 text-slate-400 hover:text-white transition-colors z-10"
+            aria-label="Saltar"
           >
-            Saltar todo
+            <X className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6" />
           </button>
+
+          {/* Progress indicator */}
+          <div className="flex gap-1 sm:gap-1.5 md:gap-2 p-2 sm:p-3 md:p-4 bg-slate-950/50 flex-shrink-0">
+            {steps.map((step, index) => (
+              <div
+                key={step.id}
+                className={`flex-1 h-1 sm:h-1.5 rounded-full transition-all ${
+                  index <= currentStep ? 'bg-gradient-to-r from-purple-500 to-pink-600' : 'bg-slate-700'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Step content */}
+          <div ref={stepContentRef} className="p-4 sm:p-6 md:p-8 flex-1 flex flex-col min-h-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <CurrentStepComponent
+              onNext={handleNext}
+              isInstallable={isInstallable}
+              promptInstall={promptInstall}
+              trustedContacts={trustedContacts}
+              setTrustedContacts={setTrustedContacts}
+            />
+          </div>
+
+          {/* Navigation */}
+          <div className="flex justify-between items-center p-3 sm:p-4 md:p-6 bg-gradient-to-t from-slate-950  flex-shrink-0 sticky bottom-0">
+            <span className="text-[10px] sm:text-xs md:text-sm text-slate-400">
+              Paso {currentStep + 1} de {steps.length}
+            </span>
+            <button
+              onClick={handleSkip}
+              className="text-[10px] sm:text-xs md:text-sm text-slate-400 hover:text-white transition-colors"
+            >
+              Saltar todo
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -143,7 +153,7 @@ END:VCARD`;
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="text-center">
           {/* Icon */}
           <div className="flex justify-center mb-4">
@@ -216,7 +226,7 @@ function PWAStep({ onNext, isInstallable, promptInstall }) {
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="text-center">
           {/* Icon */}
           <div className="flex justify-center mb-4">
@@ -226,12 +236,12 @@ function PWAStep({ onNext, isInstallable, promptInstall }) {
           </div>
 
           {/* Title */}
-          <h2 className="sm:text-2xl md:text-3xl font-bold text-white mb-3">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 sm:mb-3 px-2">
             Instala SafeLine en tu Dispositivo
           </h2>
 
           {/* Description */}
-          <p className="text-slate-300 mb-4 sm:text-sm md:text-base">
+          <p className="text-slate-300 mb-6 sm:mb-8 text-sm sm:text-base md:text-lg px-2">
             Instala SafeLine como una aplicación nativa para acceder rápidamente y recibir notificaciones de llamadas sospechosas.
           </p>
 
@@ -364,7 +374,7 @@ function TrustedContactsStep({ onNext, trustedContacts, setTrustedContacts }) {
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="text-center">
           {/* Icon */}
           <div className="flex justify-center mb-4">
@@ -489,7 +499,7 @@ function ExplanationStep({ onNext }) {
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="text-center">
           {/* Icon */}
           <div className="flex justify-center mb-4">
