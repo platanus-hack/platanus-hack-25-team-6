@@ -188,9 +188,11 @@ function Dashboard({ onLogout }) {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="bg-blue-600 p-2 rounded-xl">
-                <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-              </div>
+              <img
+                src="/project-logo.png"
+                alt="SafeLine Logo"
+                className="h-10 w-auto sm:h-12 rounded-lg"
+              />
               <span className="text-xl sm:text-2xl font-bold text-white">SafeLine</span>
             </div>
 
