@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     twilio_phone_number: str = ""
     base_url: str = ""  # Your server's public URL (ngrok for dev)
 
+    # Kapso.ai (WhatsApp)
+    kapso_api_key: str = ""
+    kapso_phone_number_id: str = ""
+
     # App
     environment: str = "development"
     debug: bool = True

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Landing from './components/Landing';
 import PhoneInput from './components/PhoneInput';
 import VerificationCode from './components/VerificationCode';
@@ -7,8 +7,17 @@ import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import PWAInstallBanner from './components/PWAInstallBanner';
 
 function App() {
-  const [view, setView] = useState('landing'); // 'landing', 'phone', 'verification', 'dashboard'
+  const [view, setView] = useState('landing');
   const [phoneNumber, setPhoneNumber] = useState('');
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const savedPhone = localStorage.getItem('safeline_phone');
+    if (savedPhone) {
+      setPhoneNumber(savedPhone);
+      setView('dashboard');
+    }
+  }, []);
 
   const handleGetStarted = () => {
     setView('phone');
@@ -21,8 +30,8 @@ function App() {
 
   const handleVerify = (code) => {
     console.log('Verifying code:', code, 'for phone:', phoneNumber);
-    // Add verification logic here
-    // On success, navigate to dashboard
+    // Save session
+    localStorage.setItem('safeline_phone', phoneNumber);
     setView('dashboard');
   };
 
@@ -31,6 +40,7 @@ function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('safeline_phone');
     setPhoneNumber('');
     setView('landing');
   };
