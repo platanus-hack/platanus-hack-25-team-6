@@ -30,7 +30,7 @@ Agrega estas variables a tu archivo `.env`:
 ```bash
 # Twilio Configuration
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=your_auth_token_here
+TWILIO_AUTH_TOKEN=your_auth_token_here 
 TWILIO_PHONE_NUMBER=+1234567890
 BASE_URL=https://abc123.ngrok.io  # Tu URL pública de ngrok
 ```
