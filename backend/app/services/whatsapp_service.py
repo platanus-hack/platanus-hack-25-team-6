@@ -58,7 +58,7 @@ class WhatsAppService:
                 print(f"Kapso API Error: {error_detail}")
                 raise Exception(f"Kapso API error: {e.response.status_code} - {e.response.text}")
 
-    async def send_scam_alert(self, to: str, risk_level: str, summary: str, call_id: str = None) -> dict:
+    async def send_scam_alert(self, to: str, risk_level: str, summary: str, caller_number: str = None, duration: int = None) -> dict:
         """
         Send a scam alert notification via WhatsApp
 
@@ -66,26 +66,36 @@ class WhatsAppService:
             to: Phone number to notify
             risk_level: Risk level (low, medium, high, critical)
             summary: Summary of the detected scam
-            call_id: Optional call ID for reference
+            caller_number: Phone number that initiated the call
+            duration: Call duration in seconds
 
         Returns:
             API response from Kapso
         """
-        emoji_map = {
-            "low": "🟢",
-            "medium": "🟡",
-            "high": "🟠",
-            "critical": "🔴"
+        # Use alert emoji based on risk level
+        emoji = "🚨" if risk_level.lower() in ["high", "critical"] else "⚠️"
+
+        # Map risk levels to Spanish
+        risk_level_spanish = {
+            "low": "Bajo",
+            "medium": "Medio",
+            "high": "Alto",
+            "critical": "Crítico"
         }
+        risk_text = risk_level_spanish.get(risk_level.lower(), risk_level.upper())
 
-        emoji = emoji_map.get(risk_level.lower(), "⚪")
+        message = f"{emoji} *SafeLine - Alerta de Estafa*\n\n"
+        message += f"*Nivel de Riesgo:* {risk_text}\n\n"
 
-        message = f"{emoji} *SafeLine Alert*\n\n"
-        message += f"*Risk Level:* {risk_level.upper()}\n\n"
-        message += f"*Summary:*\n{summary}\n"
+        if caller_number:
+            message += f"*Número que llama:* {caller_number}\n\n"
 
-        if call_id:
-            message += f"\n_Call ID: {call_id}_"
+        if duration is not None:
+            minutes = int(duration // 60)
+            seconds = int(duration % 60)
+            message += f"*Duración:* {minutes}m {seconds}s\n"
+
+        message += f"\n*Análisis:*\n{summary}"
 
         return await self.send_text_message(to, message)
 

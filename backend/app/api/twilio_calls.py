@@ -6,6 +6,7 @@ from ..core.database import get_database
 from ..models.recording import Recording, RecordingStatus
 from ..services.realtime_service import OpenAIRealtimeService
 from ..services.scam_detection import scam_detection_service
+from ..services.whatsapp_service import whatsapp_service
 from datetime import datetime
 import json
 import base64
@@ -41,6 +42,7 @@ class TwilioCallSession:
         self.start_time = datetime.utcnow()  # Track call start time
         self.duration = 0  # Duration in seconds
         self.warning_audio_played = False  # Track if warning already played
+        self.whatsapp_alert_sent = False  # Track if WhatsApp alert already sent
 
     async def start(self, twilio_ws: WebSocket):
         """Start the call session"""
@@ -238,6 +240,14 @@ class TwilioCallSession:
                 print(f"[Twilio Call {self.call_sid}] 🚨 Risk level {risk_level.upper()} detected - triggering audio warning")
                 asyncio.create_task(self.inject_warning_audio())
 
+            # Send WhatsApp alert for medium, high, or critical risk
+            if risk_level in ["medium", "high", "critical"] and not self.whatsapp_alert_sent:
+                asyncio.create_task(self.send_whatsapp_alert(
+                    risk_level=risk_level,
+                    summary=analysis.reasoning,
+                    indicators=analysis.indicators
+                ))
+
             # Update recording
             await self.update_recording()
 
@@ -334,6 +344,65 @@ class TwilioCallSession:
 
         except Exception as e:
             print(f"[Twilio Call {self.call_sid}] ❌ Error injecting audio: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    async def send_whatsapp_alert(self, risk_level: str, summary: str, indicators: list):
+        """Send WhatsApp scam alert to all registered users"""
+        if self.whatsapp_alert_sent:
+            print(f"[Twilio Call {self.call_sid}] WhatsApp alert already sent, skipping")
+            return
+
+        try:
+            # Format summary with indicators
+            full_summary = summary
+            if indicators:
+                full_summary += f"\n\n*Indicadores detectados:* {', '.join(indicators)}"
+
+            # Get all registered users from database
+            db = get_database()
+            users = await db.users.find({}).to_list(length=None)
+
+            if not users:
+                print(f"[Twilio Call {self.call_sid}] No registered users found for WhatsApp alert")
+                return
+
+            print(f"[Twilio Call {self.call_sid}] 📱 Sending WhatsApp alert to {len(users)} registered users")
+
+            sent_count = 0
+            for user in users:
+                phone_number = user.get("phone", "").replace("+", "")
+                if not phone_number:
+                    continue
+
+                try:
+                    # Calculate current duration
+                    current_duration = (datetime.utcnow() - self.start_time).total_seconds()
+
+                    await whatsapp_service.send_scam_alert(
+                        to=phone_number,
+                        risk_level=risk_level,
+                        summary=full_summary,
+                        caller_number=self.caller_number,
+                        duration=current_duration
+                    )
+                    sent_count += 1
+                    print(f"[Twilio Call {self.call_sid}] ✅ Alert sent to {phone_number}")
+                except Exception as e:
+                    print(f"[Twilio Call {self.call_sid}] ❌ Error sending to {phone_number}: {str(e)}")
+
+            self.whatsapp_alert_sent = True
+            print(f"[Twilio Call {self.call_sid}] ✅ WhatsApp alerts sent to {sent_count}/{len(users)} users")
+
+            # Notify frontends
+            await self.broadcast_to_frontends({
+                "type": "alert.whatsapp_sent",
+                "sent_count": sent_count,
+                "risk_level": risk_level
+            })
+
+        except Exception as e:
+            print(f"[Twilio Call {self.call_sid}] ❌ Error sending WhatsApp alerts: {str(e)}")
             import traceback
             traceback.print_exc()
 
