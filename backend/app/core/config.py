@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
     api_prefix: str = "/api/v1"
-    allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:4173", "https://getruklo.com"]
+    allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:4173", "https://getruklo.com", "https://safe-line.xyz"]
 
 
 def get_settings() -> Settings:
