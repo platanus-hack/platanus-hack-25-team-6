@@ -3,6 +3,8 @@ import Landing from './components/Landing';
 import PhoneInput from './components/PhoneInput';
 import VerificationCode from './components/VerificationCode';
 import Dashboard from './components/Dashboard';
+import PWAUpdatePrompt from './components/PWAUpdatePrompt';
+import PWAInstallBanner from './components/PWAInstallBanner';
 
 function App() {
   const [view, setView] = useState('landing'); // 'landing', 'phone', 'verification', 'dashboard'
@@ -33,25 +35,22 @@ function App() {
     setView('landing');
   };
 
-  if (view === 'phone') {
-    return <PhoneInput onSubmit={handlePhoneSubmit} />;
-  }
-
-  if (view === 'verification') {
-    return (
-      <VerificationCode
-        phoneNumber={phoneNumber}
-        onVerify={handleVerify}
-        onBack={handleBack}
-      />
-    );
-  }
-
-  if (view === 'dashboard') {
-    return <Dashboard onLogout={handleLogout} />;
-  }
-
-  return <Landing onGetStarted={handleGetStarted} />;
+  return (
+    <>
+      <PWAInstallBanner />
+      <PWAUpdatePrompt />
+      {view === 'phone' && <PhoneInput onSubmit={handlePhoneSubmit} />}
+      {view === 'verification' && (
+        <VerificationCode
+          phoneNumber={phoneNumber}
+          onVerify={handleVerify}
+          onBack={handleBack}
+        />
+      )}
+      {view === 'dashboard' && <Dashboard onLogout={handleLogout} />}
+      {view === 'landing' && <Landing onGetStarted={handleGetStarted} />}
+    </>
+  );
 }
 
 export default App;
