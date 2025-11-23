@@ -369,23 +369,23 @@ export const TwilioCallMonitor = () => {
 
             {/* Call Info */}
             {callInfo && (
-              <div className="bg-slate-950/50 rounded-lg p-4 mb-5 border border-slate-800/50">
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-slate-950/50 rounded-lg p-5 mb-6 border border-slate-800/50">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <span className="text-slate-500 block mb-1 text-xs">Llamante</span>
-                    <span className="text-slate-200 font-mono font-semibold text-base">{callInfo.caller_number}</span>
+                    <span className="text-slate-500 block mb-2 text-sm">Llamante</span>
+                    <span className="text-slate-200 font-mono font-semibold text-lg">{callInfo.caller_number}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block mb-1 text-xs">Receptor</span>
-                    <span className="text-slate-200 font-mono font-semibold text-base">{callInfo.called_number}</span>
+                    <span className="text-slate-500 block mb-2 text-sm">Receptor</span>
+                    <span className="text-slate-200 font-mono font-semibold text-lg">{callInfo.called_number}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block mb-1 text-xs">Inicio</span>
-                    <span className="text-slate-200 font-semibold text-base">{formatDateTime(callInfo.start_time).time}</span>
+                    <span className="text-slate-500 block mb-2 text-sm">Inicio</span>
+                    <span className="text-slate-200 font-semibold text-lg">{formatDateTime(callInfo.start_time).time}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block mb-1 text-xs">Duración</span>
-                    <span className="text-slate-200 font-semibold text-base">{formatDuration(callInfo.duration)}</span>
+                    <span className="text-slate-500 block mb-2 text-sm">Duración</span>
+                    <span className="text-slate-200 font-semibold text-lg">{formatDuration(callInfo.duration)}</span>
                   </div>
                 </div>
               </div>
@@ -393,7 +393,7 @@ export const TwilioCallMonitor = () => {
 
             {/* Waveform Visualization */}
             <div>
-              <h3 className="text-sm font-semibold text-slate-400 mb-2 uppercase tracking-wide">Audio en Tiempo Real</h3>
+              <h3 className="text-sm font-semibold text-slate-400 mb-2 uppercase tracking-wide"></h3>
               <CallWaveform isActive={isConnected} riskLevel={currentRiskLevel} />
             </div>
           </div>
