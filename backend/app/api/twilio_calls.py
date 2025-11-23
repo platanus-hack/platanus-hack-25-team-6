@@ -444,6 +444,7 @@ class TwilioCallSession:
                         "scam_risk_level": final_analysis.risk_level.value,
                         "scam_confidence": final_analysis.confidence,
                         "scam_indicators": final_analysis.indicators,
+                        "duration": self.duration,
                         "updated_at": datetime.utcnow()
                     }
 
@@ -465,7 +466,7 @@ class TwilioCallSession:
                 else:
                     await db.recordings.update_one(
                         {"_id": self.recording_id},
-                        {"$set": {"status": RecordingStatus.ANALYZED, "updated_at": datetime.utcnow()}}
+                        {"$set": {"status": RecordingStatus.ANALYZED, "duration": self.duration, "updated_at": datetime.utcnow()}}
                     )
 
             except Exception as e:

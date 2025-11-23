@@ -1,4 +1,5 @@
 {
   "project-name": "SafeLine",
-  "project-description-spanish": "Sistema de protección telefónica con IA que detecta intentos de estafa en tiempo real. Intercepta llamadas sospechosas, las transcribe con Whisper y analiza con Claude Haiku para identificar patrones de fraude comunes en Chile y Latinoamérica. Incluye alertas instantáneas por WhatsApp cuando detecta suplantación de familiares, protegiendo especialmente a adultos mayores del fraude telefónico."
+  "project-description-spanish": "Sistema de protección telefónica con IA que detecta intentos de estafa en tiempo real. Intercepta llamadas sospechosas, las transcribe con Whisper y analiza con Claude Haiku para identificar patrones de fraude comunes en Chile y Latinoamérica. Incluye alertas instantáneas por WhatsApp cuando detecta suplantación de familiares, protegiendo especialmente a adultos mayores del fraude telefónico.",
+  "deploy-url": "https://safe-line.xyz"
 }

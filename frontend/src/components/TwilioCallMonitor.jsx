@@ -13,10 +13,12 @@ export const TwilioCallMonitor = () => {
   const [currentRiskLevel, setCurrentRiskLevel] = useState('low');
   const [isConnected, setIsConnected] = useState(false);
   const [callInfo, setCallInfo] = useState(null); // Stores call metadata (numbers, times, etc)
+  const [currentDuration, setCurrentDuration] = useState(0); // Live duration counter
 
   const wsRef = useRef(null);
   const alertAudioRef = useRef(null);
   const transcriptContainerRef = useRef(null);
+  const durationIntervalRef = useRef(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -24,6 +26,42 @@ export const TwilioCallMonitor = () => {
       transcriptContainerRef.current.scrollTop = transcriptContainerRef.current.scrollHeight;
     }
   }, [transcript]);
+
+  // Update duration in real-time when call is active
+  useEffect(() => {
+    if (callInfo && callInfo.start_time) {
+      // Clear any existing interval
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+      }
+
+      // Calculate initial duration
+      const startTime = new Date(callInfo.start_time);
+      const updateDuration = () => {
+        const now = new Date();
+        const durationSeconds = Math.floor((now - startTime) / 1000);
+        setCurrentDuration(durationSeconds);
+      };
+
+      // Update immediately
+      updateDuration();
+
+      // Update every second
+      durationIntervalRef.current = setInterval(updateDuration, 1000);
+
+      return () => {
+        if (durationIntervalRef.current) {
+          clearInterval(durationIntervalRef.current);
+        }
+      };
+    } else {
+      // No active call, clear duration
+      setCurrentDuration(0);
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+      }
+    }
+  }, [callInfo]);
 
   // Parse SafeLine analysis text into structured data
   const parseAnalysis = (text) => {
@@ -363,7 +401,7 @@ export const TwilioCallMonitor = () => {
                   </div>
                   <div>
                     <span className="text-slate-500 block mb-2 text-sm">Duración</span>
-                    <span className="text-slate-200 font-semibold text-lg">{formatDuration(callInfo.duration)}</span>
+                    <span className="text-slate-200 font-semibold text-lg">{formatDuration(currentDuration)}</span>
                   </div>
                 </div>
               </div>
