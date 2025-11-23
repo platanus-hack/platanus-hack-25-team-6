@@ -1,5 +1,5 @@
-# Build stage
-FROM node:18-alpine AS builder
+# Build stage - use Debian-based image to avoid Alpine/musl issues with Rollup
+FROM node:18-slim AS builder
 
 # Set working directory
 WORKDIR /app
@@ -21,7 +21,7 @@ ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:18-slim
 
 WORKDIR /app
 
