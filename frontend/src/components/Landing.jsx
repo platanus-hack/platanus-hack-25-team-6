@@ -17,12 +17,6 @@ function Landing({ onGetStarted }) {
 
             {/* Navigation */}
             <nav className="hidden md:flex items-center gap-4 lg:gap-8">
-              <a href="#inicio" className="text-slate-300 hover:text-white transition-colors text-sm lg:text-base">
-                Inicio
-              </a>
-              <a href="#ingresar" className="text-slate-300 hover:text-white transition-colors text-sm lg:text-base">
-                Ingresar
-              </a>
               <button
                 onClick={onGetStarted}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 lg:px-6 py-2 lg:py-2.5 rounded-lg font-medium transition-colors text-sm lg:text-base whitespace-nowrap"
@@ -43,16 +37,16 @@ function Landing({ onGetStarted }) {
       </header>
 
       {/* Hero Section */}
-      <main className="pt-16 sm:pt-20 md:pt-24 lg:pt-32 pb-8 sm:pb-12 md:pb-16 lg:pb-20 px-3 sm:px-6 lg:px-8">
+      <main className="pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-12 sm:pb-16 md:pb-20 lg:pb-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-blue-950/50 border border-blue-800 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full mb-4 sm:mb-6 md:mb-8">
+          <div className="inline-flex items-center gap-2 bg-blue-950/50 border border-blue-800 px-4 sm:px-4 py-2 sm:py-2 rounded-full mb-6 sm:mb-6 md:mb-8">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-            <span className="text-blue-300 font-medium text-xs sm:text-sm">ACTIVO EN CHILE 🇨🇱</span>
+            <span className="text-blue-300 font-medium text-sm sm:text-sm">ACTIVO EN CHILE 🇨🇱</span>
           </div>
 
           {/* Main Title */}
-          <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-3 sm:mb-4 md:mb-6 leading-tight px-1 sm:px-2">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-4 sm:mb-5 md:mb-6 leading-tight px-2 sm:px-2">
             Tu Escudo Digital Contra{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 inline-block">
               Estafas
@@ -60,28 +54,28 @@ function Landing({ onGetStarted }) {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-slate-400 mb-6 sm:mb-8 md:mb-10 lg:mb-12 max-w-4xl mx-auto leading-relaxed px-2 sm:px-4">
+          <p className="text-base sm:text-lg md:text-xl lg:text-xl xl:text-2xl text-slate-400 mb-8 sm:mb-10 md:mb-12 lg:mb-14 max-w-3xl mx-auto leading-relaxed px-4 sm:px-6">
             SafeLine usa Inteligencia Artificial para analizar tus llamadas en tiempo real.
             Detecta fraudes antes de que te ocurran.
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-10 md:mb-12 lg:mb-16 px-2 sm:px-4 max-w-2xl mx-auto">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-4 justify-center mb-10 sm:mb-12 md:mb-14 lg:mb-16 px-4 sm:px-4 max-w-2xl mx-auto">
             <button
               onClick={onGetStarted}
-              className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-5 sm:px-6 md:px-8 py-3 sm:py-3.5 md:py-4 rounded-lg font-semibold text-sm sm:text-base md:text-lg transition-all shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 w-full sm:w-auto"
+              className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-8 sm:px-8 md:px-10 py-4 sm:py-4 md:py-4 rounded-xl font-semibold text-base sm:text-base md:text-lg transition-all shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 w-full sm:w-auto"
             >
               Proteger mi Teléfono
             </button>
-            <button className="bg-transparent border-2 border-slate-600 hover:border-slate-500 active:border-slate-400 text-white px-5 sm:px-6 md:px-8 py-3 sm:py-3.5 md:py-4 rounded-lg font-semibold text-sm sm:text-base md:text-lg transition-all w-full sm:w-auto">
+            <button className="bg-transparent border-2 border-slate-600 hover:border-slate-500 active:border-slate-400 text-white px-8 sm:px-8 md:px-10 py-4 sm:py-4 md:py-4 rounded-xl font-semibold text-base sm:text-base md:text-lg transition-all w-full sm:w-auto">
               Ver Demo en Vivo
             </button>
           </div>
 
           {/* Features */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 justify-center items-center text-slate-300 text-xs sm:text-sm md:text-base px-2">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 md:gap-8 justify-center items-center text-slate-300 text-sm sm:text-sm md:text-base px-4">
             <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-5 sm:h-5 text-yellow-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M13.5 2L4 14h7l-1.5 8L20 10h-7l1.5-8z"/>
               </svg>
               <span>Ultra rápida</span>
@@ -90,7 +84,7 @@ function Landing({ onGetStarted }) {
               {/* Shield icon from Lucidchart SVG, colorized for this design */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0"
+                className="w-5 h-5 sm:w-5 sm:h-5 text-green-500 flex-shrink-0"
                 viewBox="0 0 24 24"
                 fill="currentColor"
               >
