@@ -3,15 +3,15 @@ import { useEffect, useRef, useState } from 'react';
 export const CallWaveform = ({ isActive, riskLevel = 'low' }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
-  const [bars] = useState(() => Array.from({ length: 40 }, () => Math.random()));
+  const [bars] = useState(() => Array.from({ length: 60 }, () => Math.random() * 0.5 + 0.5));
 
   const getRiskColor = (level) => {
     switch (level) {
-      case 'critical': return { r: 220, g: 38, b: 38 };
-      case 'high': return { r: 234, g: 88, b: 12 };
-      case 'medium': return { r: 245, g: 158, b: 11 };
-      case 'low': return { r: 59, g: 130, b: 246 };
-      default: return { r: 59, g: 130, b: 246 };
+      case 'critical': return { r: 239, g: 68, b: 68, glow: 'rgba(239, 68, 68, 0.3)' };
+      case 'high': return { r: 249, g: 115, b: 22, glow: 'rgba(249, 115, 22, 0.3)' };
+      case 'medium': return { r: 250, g: 204, b: 21, glow: 'rgba(250, 204, 21, 0.3)' };
+      case 'low': return { r: 52, g: 211, b: 153, glow: 'rgba(52, 211, 153, 0.3)' };
+      default: return { r: 52, g: 211, b: 153, glow: 'rgba(52, 211, 153, 0.3)' };
     }
   };
 
@@ -44,46 +44,67 @@ export const CallWaveform = ({ isActive, riskLevel = 'low' }) => {
       const width = canvas.offsetWidth;
       const height = canvas.offsetHeight;
 
-      // Clear canvas
-      ctx.clearRect(0, 0, width, height);
+      // Clear canvas with subtle gradient background
+      const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+      bgGradient.addColorStop(0, 'rgba(15, 23, 42, 0.95)');
+      bgGradient.addColorStop(1, 'rgba(30, 41, 59, 0.95)');
+      ctx.fillStyle = bgGradient;
+      ctx.fillRect(0, 0, width, height);
 
-      const barCount = 40;
-      const barWidth = width / barCount;
+      const barCount = 60;
+      const barWidth = (width / barCount) * 0.7;
+      const barGap = (width / barCount) * 0.3;
       const centerY = height / 2;
 
-      // Draw waveform bars
+      // Draw waveform bars with rounded caps
       for (let i = 0; i < barCount; i++) {
-        // Create wave motion with multiple sine waves
-        const baseHeight = bars[i] * 0.3;
-        const wave1 = Math.sin(phase + i * 0.3) * 0.4;
-        const wave2 = Math.sin(phase * 1.5 - i * 0.2) * 0.3;
-        const normalizedHeight = (baseHeight + wave1 + wave2 + 1) / 2;
+        // Create more natural wave motion
+        const baseHeight = bars[i];
+        const wave1 = Math.sin(phase + i * 0.15) * 0.5;
+        const wave2 = Math.sin(phase * 2 - i * 0.1) * 0.3;
+        const wave3 = Math.sin(phase * 0.5 + i * 0.05) * 0.2;
+        const normalizedHeight = Math.max(0.1, Math.min(1, (baseHeight + wave1 + wave2 + wave3) / 2));
 
-        const barHeight = normalizedHeight * height * 0.8;
-        const x = i * barWidth;
+        const barHeight = normalizedHeight * height * 0.7;
+        const x = i * (barWidth + barGap) + barGap / 2;
         const y = centerY - barHeight / 2;
 
-        // Gradient from center to edges
+        // Create vertical gradient for each bar
         const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
-        const alpha = 0.8 - (Math.abs(i - barCount / 2) / barCount) * 0.4;
+        const centerDistance = Math.abs(i - barCount / 2) / (barCount / 2);
+        const alpha = 0.9 - centerDistance * 0.3;
 
-        gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.6})`);
+        gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.5})`);
         gradient.addColorStop(0.5, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`);
-        gradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.6})`);
+        gradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.5})`);
 
+        // Draw bar with rounded caps
         ctx.fillStyle = gradient;
-        ctx.fillRect(x, y, barWidth - 2, barHeight);
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = color.glow;
 
-        // Add glow effect
-        if (i % 3 === 0) {
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.5)`;
-        } else {
-          ctx.shadowBlur = 0;
+        const radius = barWidth / 2;
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + barWidth - radius, y);
+        ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + radius);
+        ctx.lineTo(x + barWidth, y + barHeight - radius);
+        ctx.quadraticCurveTo(x + barWidth, y + barHeight, x + barWidth - radius, y + barHeight);
+        ctx.lineTo(x + radius, y + barHeight);
+        ctx.quadraticCurveTo(x, y + barHeight, x, y + barHeight - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        ctx.fill();
+
+        // Add extra glow to center bars
+        if (Math.abs(i - barCount / 2) < 5) {
+          ctx.shadowBlur = 25;
         }
       }
 
-      phase += 0.05;
+      ctx.shadowBlur = 0;
+      phase += 0.08;
       animationRef.current = requestAnimationFrame(draw);
     };
 
@@ -98,12 +119,11 @@ export const CallWaveform = ({ isActive, riskLevel = 'low' }) => {
   }, [isActive, riskLevel, bars]);
 
   return (
-    <div className="relative w-full h-24 sm:h-28 md:h-32 bg-gradient-to-br from-slate-900 to-slate-950 rounded-xl overflow-hidden shadow-inner">
+    <div className="relative w-full h-20 sm:h-24 bg-slate-950 rounded-xl overflow-hidden border border-slate-800/50 shadow-lg">
       <canvas ref={canvasRef} className="w-full h-full" />
-      {isActive && (
-        <div className="absolute top-2 left-3 flex items-center gap-2 bg-slate-950/80 px-2.5 py-1 rounded-lg backdrop-blur-sm">
-          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-lg shadow-red-500/50"></div>
-          <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">EN VIVO</span>
+      {!isActive && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+          <span className="text-slate-500 text-sm font-medium">En espera...</span>
         </div>
       )}
     </div>

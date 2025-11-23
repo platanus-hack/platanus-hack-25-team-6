@@ -55,7 +55,6 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
   const showRiskNotification = (analysis) => {
     // Request notification permission if not granted
     if (!('Notification' in window)) {
-      console.log('Este navegador no soporta notificaciones');
       return;
     }
 

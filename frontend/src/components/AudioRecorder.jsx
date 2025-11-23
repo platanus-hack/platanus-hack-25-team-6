@@ -36,7 +36,6 @@ export const AudioRecorder = ({ onUploadComplete }) => {
 
     try {
       const result = await recordingAPI.uploadRecording(audioBlob);
-      console.log('Upload successful:', result);
       clearRecording();
       if (onUploadComplete) {
         onUploadComplete(result);

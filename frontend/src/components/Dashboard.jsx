@@ -187,26 +187,9 @@ function Dashboard({ onLogout }) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
-            Monitor de Llamadas
-          </h1>
-          {activeTab === 'history' && (
-            <div className="flex items-center gap-3">
-              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <Search className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
-              </button>
-              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <Filter className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
-              </button>
-            </div>
-          )}
-        </div>
-
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 sm:mb-8 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-1">
+        <div className="flex gap-2 mb-6 sm:mb-6 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-1">
           <button
             onClick={() => setActiveTab('live')}
             className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all ${
@@ -237,6 +220,19 @@ function Dashboard({ onLogout }) {
         )}
 
         {/* History Tab */}
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
+          {activeTab === 'history' && (
+            <div className="flex items-center gap-3">
+              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                <Search className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
+              </button>
+              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                <Filter className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
+              </button>
+            </div>
+          )}
+        </div>
         {activeTab === 'history' && (
           <>
             {/* Loading State */}
