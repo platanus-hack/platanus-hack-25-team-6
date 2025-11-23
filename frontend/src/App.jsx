@@ -41,8 +41,12 @@ function AppContent() {
     // View will automatically switch to dashboard via isAuthenticated
   };
 
-  const handleBack = () => {
+  const handleBackToPhone = () => {
     setView('phone');
+  };
+
+  const handleBackToLanding = () => {
+    setView('landing');
   };
 
   const handleLogout = () => {
@@ -70,12 +74,12 @@ function AppContent() {
     <>
       <PWAInstallBanner />
       <PWAUpdatePrompt />
-      {view === 'phone' && <PhoneInput onSubmit={handlePhoneSubmit} />}
+      {view === 'phone' && <PhoneInput onSubmit={handlePhoneSubmit} onBack={handleBackToLanding} />}
       {view === 'verification' && (
         <VerificationCode
           phoneNumber={phoneNumber}
           onVerify={handleVerify}
-          onBack={handleBack}
+          onBack={handleBackToPhone}
         />
       )}
       {view === 'landing' && <Landing onGetStarted={handleGetStarted} />}

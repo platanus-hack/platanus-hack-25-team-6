@@ -5,7 +5,7 @@ function VCardSaveModal({ onClose, onSave }) {
     // Create vCard content
     const vCard = `BEGIN:VCARD
 VERSION:3.0
-FN:# BOT
+FN:#SafeLine
 TEL;TYPE=WORK:+566009140389
 END:VCARD`;
 
@@ -59,7 +59,7 @@ END:VCARD`;
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-400">Nombre</p>
-              <p className="text-white font-medium"># BOT</p>
+              <p className="text-white font-medium">#SafeLine</p>
             </div>
             <div className="text-right">
               <p className="text-sm text-slate-400">Teléfono</p>

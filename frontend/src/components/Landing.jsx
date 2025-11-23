@@ -1,4 +1,4 @@
-import { Shield, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 function Landing({ onGetStarted }) {
   return (
@@ -9,9 +9,11 @@ function Landing({ onGetStarted }) {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="bg-blue-600 p-1.5 sm:p-2 rounded-lg sm:rounded-xl">
-                <Shield className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white" />
-              </div>
+              <img
+                src="/project-logo.png"
+                alt="SafeLine Logo"
+                className="h-8 w-auto sm:h-10 md:h-12 rounded-lg"
+              />
               <span className="text-lg sm:text-xl md:text-2xl font-bold text-white">SafeLine</span>
             </div>
 
@@ -65,10 +67,7 @@ function Landing({ onGetStarted }) {
               onClick={onGetStarted}
               className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-8 sm:px-8 md:px-10 py-4 sm:py-4 md:py-4 rounded-xl font-semibold text-base sm:text-base md:text-lg transition-all shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 w-full sm:w-auto"
             >
-              Proteger mi Teléfono
-            </button>
-            <button className="bg-transparent border-2 border-slate-600 hover:border-slate-500 active:border-slate-400 text-white px-8 sm:px-8 md:px-10 py-4 sm:py-4 md:py-4 rounded-xl font-semibold text-base sm:text-base md:text-lg transition-all w-full sm:w-auto">
-              Ver Demo en Vivo
+              Proteger mi Dispositivo
             </button>
           </div>
 
@@ -90,7 +89,7 @@ function Landing({ onGetStarted }) {
               >
                 <path d="M12 2.25c-.22 0-.44.044-.64.129l-7 2.916A1.25 1.25 0 0 0 3 6.417v6.708c0 4.147 3.187 7.87 8.37 9.712a1.24 1.24 0 0 0 .86 0c5.183-1.842 8.37-5.565 8.37-9.712V6.417a1.25 1.25 0 0 0-.36-.872l-7-2.916A1.251 1.251 0 0 0 12 2.25zm0 1.742 6.75 2.814v6.319c0 3.427-2.835 6.497-6.75 8.1-3.915-1.603-6.75-4.673-6.75-8.1V6.806L12 3.992z"/>
               </svg>
-              <span>100% Segura</span>
+              <span>Segura</span>
             </div>
           </div>
         </div>

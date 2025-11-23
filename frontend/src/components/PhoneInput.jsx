@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Shield, ArrowRight, Lock, Smartphone, Loader2 } from 'lucide-react';
+import { ArrowRight, Lock, Smartphone, Loader2, ArrowLeft } from 'lucide-react';
 import { authAPI } from '../services/api';
 
-function PhoneInput({ onSubmit }) {
+function PhoneInput({ onSubmit, onBack }) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,11 +31,22 @@ function PhoneInput({ onSubmit }) {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="bg-blue-600 p-1.5 sm:p-2 rounded-lg sm:rounded-xl">
-                <Shield className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white" />
-              </div>
+              <img
+                src="/project-logo.png"
+                alt="SafeLine Logo"
+                className="h-8 w-auto sm:h-10 md:h-12 rounded-lg"
+              />
               <span className="text-lg sm:text-xl md:text-2xl font-bold text-white">SafeLine</span>
             </div>
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm sm:text-base"
+              >
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Volver</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -46,8 +57,12 @@ function PhoneInput({ onSubmit }) {
           <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
             {/* Header Section */}
             <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 sm:p-8 md:p-12 text-center">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-500/30 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-xl flex items-center justify-center mx-auto mb-4 sm:mb-6 p-2">
+                <img
+                  src="/project-logo.png"
+                  alt="SafeLine Logo"
+                  className="w-full h-full object-contain rounded-lg"
+                />
               </div>
               <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 sm:mb-3">Acceso Seguro</h2>
               <p className="text-blue-100 text-sm sm:text-base">Tu seguridad comienza con tu número.</p>
