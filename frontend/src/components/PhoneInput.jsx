@@ -1,13 +1,26 @@
 import { useState } from 'react';
-import { Shield, ArrowRight, Lock, Smartphone } from 'lucide-react';
+import { Shield, ArrowRight, Lock, Smartphone, Loader2 } from 'lucide-react';
+import { authAPI } from '../services/api';
 
 function PhoneInput({ onSubmit }) {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (phoneNumber.length >= 8) {
+    if (phoneNumber.length < 8) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      await authAPI.sendOTP(phoneNumber);
       onSubmit(phoneNumber);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Error al enviar el código. Intenta nuevamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -62,16 +75,31 @@ function PhoneInput({ onSubmit }) {
 
               <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-400 mb-6 sm:mb-8">
                 <Lock className="w-4 h-4" />
-                <span>Envío encriptado vía SMS</span>
+                <span>Código enviado vía WhatsApp</span>
               </div>
+
+              {error && (
+                <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+                  {error}
+                </div>
+              )}
 
               <button
                 type="submit"
-                disabled={phoneNumber.length < 8}
+                disabled={phoneNumber.length < 8 || isLoading}
                 className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-6 py-3 sm:py-4 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base md:text-lg transition-all shadow-lg flex items-center justify-center gap-2"
               >
-                Enviar Código
-                <ArrowRight className="w-5 h-5" />
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    Enviar Código
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
               </button>
             </form>
           </div>

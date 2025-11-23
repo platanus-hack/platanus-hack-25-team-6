@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Shield } from 'lucide-react';
+import { Shield, Loader2 } from 'lucide-react';
+import { authAPI } from '../services/api';
 
 function VerificationCode({ phoneNumber, onVerify, onBack }) {
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleCodeChange = (index, value) => {
     if (value.length > 1) return;
@@ -26,11 +29,23 @@ function VerificationCode({ phoneNumber, onVerify, onBack }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const code = verificationCode.join('');
-    if (code.length === 6) {
+    if (code.length !== 6) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      await authAPI.verifyOTP(phoneNumber, code);
       onVerify(code);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Código inválido. Intenta nuevamente.');
+      setVerificationCode(['', '', '', '', '', '']);
+      document.getElementById('code-0')?.focus();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -88,12 +103,25 @@ function VerificationCode({ phoneNumber, onVerify, onBack }) {
                 ))}
               </div>
 
+              {error && (
+                <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm text-center">
+                  {error}
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={verificationCode.some(d => !d)}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-6 py-3 sm:py-4 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base md:text-lg transition-all shadow-lg mb-4 sm:mb-6"
+                disabled={verificationCode.some(d => !d) || isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-6 py-3 sm:py-4 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base md:text-lg transition-all shadow-lg mb-4 sm:mb-6 flex items-center justify-center gap-2"
               >
-                Validar
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Validando...
+                  </>
+                ) : (
+                  'Validar'
+                )}
               </button>
 
               <button

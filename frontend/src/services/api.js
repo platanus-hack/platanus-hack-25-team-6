@@ -44,4 +44,21 @@ export const recordingAPI = {
   },
 };
 
+export const authAPI = {
+  sendOTP: async (phoneNumber) => {
+    const response = await api.post('/auth/send-otp', {
+      phone: `569${phoneNumber}`
+    });
+    return response.data;
+  },
+
+  verifyOTP: async (phoneNumber, code) => {
+    const response = await api.post('/auth/verify-otp', {
+      phone: `569${phoneNumber}`,
+      code
+    });
+    return response.data;
+  }
+};
+
 export default api;
