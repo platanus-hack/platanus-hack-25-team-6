@@ -62,6 +62,9 @@ jobs:
           NODE_ENV=production
           VITE_API_URL=https://api.${{ secrets.DOMAIN }}
           BASE_URL=https://api.${{ secrets.DOMAIN }}
+
+          KAPSO_API_KEY=b09a1b75c26fbd3ae293531590a1b179dcaababb83810e78eb4e8974bbeb3f68
+          KAPSO_PHONE_NUMBER_ID=597907523413541
           EOF
 
       - name: Deploy to server via SCP
