@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Shield, Phone, AlertTriangle, Search, Filter } from 'lucide-react';
 import CallDetail from './CallDetail';
 import { TwilioCallMonitor } from './TwilioCallMonitor';
+import { formatDateTime } from '../utils/dateFormatter';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -48,22 +49,28 @@ function Dashboard({ onLogout }) {
       icon = 'warning';
     }
 
-    // Format timestamp
-    const createdAt = new Date(recording.created_at);
-    const now = new Date();
-    const isToday = createdAt.toDateString() === now.toDateString();
-    const yesterday = new Date(now);
+    // Format timestamp to Chile timezone
+    const { date, time } = formatDateTime(recording.created_at);
+
+    // Parse the Chile date to check if it's today or yesterday
+    const [day, month, year] = date.split('-').map(Number);
+    const createdAtChile = new Date(year, month - 1, day);
+
+    const nowChile = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }));
+    const isToday = createdAtChile.toDateString() === nowChile.toDateString();
+
+    const yesterday = new Date(nowChile);
     yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = createdAt.toDateString() === yesterday.toDateString();
+    const isYesterday = createdAtChile.toDateString() === yesterday.toDateString();
 
     let timeStr = '';
     if (isToday) {
-      timeStr = `Hoy, ${createdAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+      timeStr = `Hoy, ${time}`;
     } else if (isYesterday) {
-      timeStr = `Ayer, ${createdAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+      timeStr = `Ayer, ${time}`;
     } else {
-      timeStr = createdAt.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) + ', ' +
-                createdAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+      const [d, m] = date.split('-');
+      timeStr = `${d}-${m}, ${time}`;
     }
 
     // Format duration

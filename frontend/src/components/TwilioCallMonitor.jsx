@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { CallWaveform } from './CallWaveform';
 import { Phone, AlertTriangle } from 'lucide-react';
+import { formatDateTime } from '../utils/dateFormatter';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -99,7 +100,6 @@ export const TwilioCallMonitor = () => {
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('Monitor message:', data);
 
       switch (data.type) {
         case 'call.state':
@@ -268,43 +268,6 @@ export const TwilioCallMonitor = () => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const formatDateTime = (isoString) => {
-    if (!isoString) return '';
-
-    // Parse the date string - if no timezone info, assume it's UTC
-    let date;
-
-    // If the string doesn't have timezone info (Z or +/-), assume it's UTC
-    if (!isoString.includes('Z') && !isoString.includes('+') && !isoString.match(/[+-]\d{2}:\d{2}$/)) {
-      // Add 'Z' to indicate UTC
-      date = new Date(isoString + 'Z');
-    } else {
-      // Has timezone info, parse normally
-      date = new Date(isoString);
-    }
-
-    // Format both date and time in Chile timezone
-    const dateFormatter = new Intl.DateTimeFormat('es-CL', {
-      timeZone: 'America/Santiago',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-
-    const timeFormatter = new Intl.DateTimeFormat('es-CL', {
-      timeZone: 'America/Santiago',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-
-    return {
-      date: dateFormatter.format(date),
-      time: timeFormatter.format(date)
-    };
   };
 
   return (
