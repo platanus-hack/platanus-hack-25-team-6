@@ -1,6 +1,57 @@
-import { X, Activity, Clock, Calendar, FileText, Cpu } from 'lucide-react';
+import { X, Activity, Clock, Calendar, FileText, Cpu, MessageCircle } from 'lucide-react';
 
 function CallDetail({ call, onClose }) {
+  // Parse transcript string into structured messages
+  const parseTranscript = (transcriptData) => {
+    console.log('Raw transcript data:', transcriptData);
+    console.log('Transcript type:', typeof transcriptData);
+
+    if (!transcriptData) return [];
+
+    let transcriptString = '';
+
+    // Handle array format
+    if (Array.isArray(transcriptData)) {
+      console.log('Transcript is an array');
+
+      // Check if it's an array of objects with 'text' property
+      if (transcriptData.length > 0 && transcriptData[0].text) {
+        // Extract the text field from the first object
+        transcriptString = transcriptData[0].text;
+        console.log('Extracted text from array object:', transcriptString);
+      }
+      // Check if it's already properly formatted array with role/text
+      else if (transcriptData.length > 0 && transcriptData[0].role) {
+        console.log('Transcript is already properly formatted');
+        return transcriptData;
+      }
+      else {
+        return [];
+      }
+    } else {
+      // It's a string
+      transcriptString = String(transcriptData);
+    }
+
+    // Parse string format: [USER]: text [ASSISTANT]: text
+    const messages = [];
+    const regex = /\[(USER|ASSISTANT)\]:\s*([^[]*?)(?=\s*\[(?:USER|ASSISTANT)\]:|$)/gs;
+    let match;
+
+    while ((match = regex.exec(transcriptString)) !== null) {
+      const role = match[1].toLowerCase();
+      const text = match[2].trim();
+
+      if (text) {
+        messages.push({ role, text });
+      }
+    }
+
+    console.log('Parsed messages count:', messages.length);
+    console.log('Parsed transcript:', messages);
+    return messages;
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'FRAUDE':
@@ -46,10 +97,8 @@ function CallDetail({ call, onClose }) {
     }
   };
 
-  // Mock transcript data - replace with actual data
-  const transcript = call.transcript || [
-    { speaker: call.title, text: 'Hola hijo, ¿cómo estás?' },
-  ];
+  // Parse the transcript
+  const transcript = parseTranscript(call.transcript);
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -146,24 +195,42 @@ function CallDetail({ call, onClose }) {
             </p>
           </div>
 
-          {/* Transcript */}
+          {/* Transcript - Chat Style */}
           <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-5 sm:p-6 mb-6 sm:mb-8">
             <div className="flex items-center gap-2 text-slate-400 font-semibold text-sm sm:text-base mb-4">
               <FileText className="w-5 h-5" />
               <h3>TRANSCRIPCIÓN DE AUDIO</h3>
             </div>
-            <div className="space-y-3">
-              {transcript.map((line, index) => (
-                <div
-                  key={index}
-                  className="bg-slate-900/50 border border-slate-800 rounded-lg p-3 sm:p-4"
-                >
-                  <p className="text-slate-300 text-sm sm:text-base font-mono">
-                    <span className="text-blue-400 font-semibold">{line.speaker}:</span>{' '}
-                    {line.text}
-                  </p>
-                </div>
-              ))}
+            <div className="bg-slate-900/50 rounded-lg p-4 max-h-[500px] overflow-y-auto space-y-3">
+              {transcript.length === 0 ? (
+                <p className="text-slate-500 text-center py-4">No hay transcripción disponible</p>
+              ) : (
+                transcript.map((message, index) => {
+                  if (message.role === 'user') {
+                    /* USER - Left Side */
+                    return (
+                      <div key={index} className="flex justify-start">
+                        <div className="max-w-[70%] bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-sm px-4 py-2.5">
+                          <p className="text-slate-100 text-sm leading-relaxed">
+                            {message.text}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    /* ASSISTANT - Right Side - SafeLine */
+                    return (
+                      <div key={index} className="flex justify-end">
+                        <div className="max-w-[70%] bg-emerald-900/40 border border-emerald-700/50 rounded-2xl rounded-tr-sm px-4 py-2.5">
+                          <p className="text-slate-100 text-sm leading-relaxed">
+                            {message.text}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                })
+              )}
             </div>
           </div>
 

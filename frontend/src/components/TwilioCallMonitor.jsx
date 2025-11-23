@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { AudioVisualizer } from './AudioVisualizer';
-import './TwilioCallMonitor.css';
+import { CallWaveform } from './CallWaveform';
+import { Phone, AlertTriangle } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -33,6 +33,18 @@ export const TwilioCallMonitor = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Automatically select the active call
+  useEffect(() => {
+    if (activeCalls.length > 0 && activeCalls[0].call_sid) {
+      setSelectedCall(activeCalls[0].call_sid);
+    } else {
+      setSelectedCall(null);
+      setCallInfo(null);
+      setTranscript([]);
+      setCurrentRiskLevel('low');
+    }
+  }, [activeCalls]);
 
   // Connect to monitor websocket when call is selected
   useEffect(() => {
@@ -230,125 +242,143 @@ export const TwilioCallMonitor = () => {
   };
 
   return (
-    <div className="twilio-monitor-container">
-      <div className="monitor-header">
-        <h2>📞 Monitor de Llamadas Twilio</h2>
-        <div className="active-calls-count">
-          {activeCalls.length} llamada{activeCalls.length !== 1 ? 's' : ''} activa{activeCalls.length !== 1 ? 's' : ''}
+    <div className="w-full">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-3">
+        <div className="flex items-center gap-3">
+          <Phone className="w-6 h-6 sm:w-7 sm:h-7 text-blue-400" />
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Monitor de Llamadas</h2>
+        </div>
+        <div className="bg-blue-600/20 border border-blue-600/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full">
+          <span className="text-blue-300 font-semibold text-sm sm:text-base">
+            {activeCalls.length > 0 ? 'Llamada Activa' : 'No existe una llamada activa'}
+          </span>
         </div>
       </div>
 
-      <div className="monitor-content">
-        {/* Active Calls List */}
-        <div className="calls-list">
-          <h3>Llamadas Activas</h3>
-          {activeCalls.length === 0 ? (
-            <div className="no-calls">
-              <p>No hay llamadas activas</p>
-              <p className="hint">Las llamadas aparecerán aquí cuando alguien llame a tu número Twilio</p>
-            </div>
-          ) : (
-            <div className="calls-grid">
-              {activeCalls.map((call) => (
-                <div
-                  key={call.call_sid}
-                  className={`call-card ${selectedCall === call.call_sid ? 'selected' : ''}`}
-                  onClick={() => setSelectedCall(call.call_sid)}
-                >
-                  <div className="call-header">
-                    <span className="call-status">🔴 EN VIVO</span>
-                    <span
-                      className="call-risk"
-                      style={{ color: getRiskColor(call.current_risk_level) }}
-                    >
-                      {getRiskLabel(call.current_risk_level)}
-                    </span>
-                  </div>
-                  <div className="call-info">
-                    <div className="caller-number">
-                      <strong>De:</strong> {call.caller_number}
-                    </div>
-                    <div className="called-number">
-                      <strong>A:</strong> {call.called_number}
-                    </div>
-                    <div className="call-time">
-                      <strong>Inicio:</strong> {formatDateTime(call.start_time).time}
-                    </div>
-                    <div className="call-duration">
-                      <strong>Duración:</strong> {formatDuration(call.duration)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      {activeCalls.length === 0 ? (
+        /* Empty State */
+        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-8 sm:p-12">
+          <div className="text-center py-8">
+            <Phone className="w-16 h-16 sm:w-20 sm:h-20 text-slate-700 mx-auto mb-4" />
+            <p className="text-slate-400 text-base sm:text-lg mb-2">No existe una llamada activa</p>
+            <p className="text-slate-600 text-sm sm:text-base">La llamada aparecerá aquí cuando alguien llame a tu número</p>
+          </div>
         </div>
-
-        {/* Call Monitor */}
-        {selectedCall && (
-          <div className="call-monitor">
-            <div className="monitor-status">
+      ) : (
+        /* Active Call Monitor - Side by Side Layout */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* Left Column: Call Info & Waveform */}
+          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-4 sm:p-6">
+            {/* Connection Status & Risk Level */}
+            <div className="flex flex-col gap-3 mb-6">
               {isConnected ? (
-                <span className="status-badge connected">
-                  🟢 Conectado - Monitoreando llamada
+                <span className="inline-flex items-center gap-2 bg-green-600/20 text-green-400 px-3 sm:px-4 py-2 rounded-lg border border-green-600/50 text-sm sm:text-base font-semibold w-fit">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  Conectado - Monitoreando
                 </span>
               ) : (
-                <span className="status-badge disconnected">
-                  🔴 Desconectado
+                <span className="inline-flex items-center gap-2 bg-red-600/20 text-red-400 px-3 sm:px-4 py-2 rounded-lg border border-red-600/50 text-sm sm:text-base font-semibold w-fit">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  Desconectado
                 </span>
               )}
+
               {callInfo && (
-                <div className="call-details">
-                  <div className="call-metadata">
-                    <span><strong>De:</strong> {callInfo.caller_number}</span>
-                    <span><strong>A:</strong> {callInfo.called_number}</span>
-                    <span><strong>Inicio:</strong> {formatDateTime(callInfo.start_time).date} {formatDateTime(callInfo.start_time).time}</span>
-                    <span><strong>Duración:</strong> {formatDuration(callInfo.duration)}</span>
-                  </div>
-                  <span
-                    className="risk-indicator"
-                    style={{
-                      backgroundColor: getRiskColor(currentRiskLevel),
-                      color: 'white',
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    Riesgo: {getRiskLabel(currentRiskLevel)}
-                  </span>
+                <div
+                  className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-bold text-sm sm:text-base w-fit"
+                  style={{
+                    backgroundColor: `${getRiskColor(currentRiskLevel)}20`,
+                    color: getRiskColor(currentRiskLevel),
+                    border: `2px solid ${getRiskColor(currentRiskLevel)}50`
+                  }}
+                >
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Riesgo: {getRiskLabel(currentRiskLevel)}
                 </div>
               )}
             </div>
 
-            {/* Transcript */}
-            <div className="monitor-transcript">
-              <h3>Transcripción en Vivo</h3>
-              <div className="transcript-content">
-                {transcript.length === 0 ? (
-                  <div className="no-transcript">
-                    Esperando transcripción...
+            {/* Live Badge */}
+            <div className="mb-4">
+              <span className="inline-flex items-center gap-1.5 bg-red-600/20 text-red-400 px-3 py-1.5 rounded-md text-sm font-bold">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                EN VIVO
+              </span>
+            </div>
+
+            {/* Call Info */}
+            {callInfo && (
+              <div className="bg-slate-950/50 rounded-lg p-4 sm:p-5 mb-6">
+                <h3 className="text-base sm:text-lg font-bold text-slate-200 mb-4">Información de Llamada</h3>
+                <div className="space-y-3 text-sm sm:text-base">
+                  <div>
+                    <span className="text-slate-500 block mb-1">Llamante</span>
+                    <span className="text-slate-200 font-mono font-semibold text-base sm:text-lg">{callInfo.caller_number}</span>
                   </div>
-                ) : (
-                  transcript.map((item, index) => (
-                    <div key={index} className={`transcript-item ${item.role}`}>
-                      <div className="item-header">
-                        <span className="role-badge">
-                          {item.role === 'user' ? '🎤 CONVERSACIÓN' : '🔍 ANÁLISIS DE RIESGO'}
-                        </span>
-                        <span className="timestamp">
-                          {new Date(item.timestamp).toLocaleTimeString()}
-                        </span>
-                      </div>
-                      <div className="item-text">{item.text}</div>
+                  <div>
+                    <span className="text-slate-500 block mb-1">Receptor</span>
+                    <span className="text-slate-200 font-mono font-semibold text-base sm:text-lg">{callInfo.called_number}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <div>
+                      <span className="text-slate-500 block mb-1">Inicio</span>
+                      <span className="text-slate-200 font-semibold block">{formatDateTime(callInfo.start_time).time}</span>
+                      <span className="text-slate-400 text-xs">{formatDateTime(callInfo.start_time).date}</span>
                     </div>
-                  ))
-                )}
+                    <div>
+                      <span className="text-slate-500 block mb-1">Duración</span>
+                      <span className="text-slate-200 font-semibold text-lg">{formatDuration(callInfo.duration)}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
+            )}
+
+            {/* Waveform Visualization */}
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-slate-200 mb-4">Visualización de Audio</h3>
+              <CallWaveform isActive={isConnected} riskLevel={currentRiskLevel} />
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Right Column: Transcript */}
+          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-bold text-slate-200 mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+              Transcripción en Vivo
+            </h3>
+            <div className="bg-slate-950/50 rounded-lg p-3 sm:p-4 h-[calc(100vh-20rem)] overflow-y-auto space-y-3">
+              {transcript.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 italic text-sm sm:text-base">
+                  Esperando transcripción...
+                </div>
+              ) : (
+                transcript.map((item, index) => (
+                  <div
+                    key={index}
+                    className={`border-l-4 p-3 rounded-lg ${
+                      item.role === 'user'
+                        ? 'bg-blue-950/30 border-blue-500'
+                        : 'bg-amber-950/30 border-amber-500'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        {item.role === 'user' ? '🎤 CONVERSACIÓN' : '🔍 ANÁLISIS DE RIESGO'}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {new Date(item.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <div className="text-sm sm:text-base text-slate-200 leading-relaxed">{item.text}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
