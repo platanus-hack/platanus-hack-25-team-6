@@ -51,6 +51,10 @@ jobs:
           TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_PHONE_NUMBER=${{ secrets.TWILIO_PHONE_NUMBER }}
 
+          # Kapso.ai (WhatsApp) Configuration
+          KAPSO_API_KEY=${{ secrets.KAPSO_API_KEY }}
+          KAPSO_PHONE_NUMBER_ID=${{ secrets.KAPSO_PHONE_NUMBER_ID }}
+
           # AI Services API Keys
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
@@ -62,9 +66,6 @@ jobs:
           NODE_ENV=production
           VITE_API_URL=https://api.${{ secrets.DOMAIN }}/api/v1
           BASE_URL=https://api.${{ secrets.DOMAIN }}
-
-          KAPSO_API_KEY=${{ secrets.KAPSO_API_KEY }}
-          KAPSO_PHONE_NUMBER_ID=${{ secrets.KAPSO_PHONE_NUMBER_ID }}
           EOF
 
       - name: Deploy to server via SCP

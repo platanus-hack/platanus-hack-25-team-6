@@ -29,10 +29,11 @@ class TranscriptionService:
             audio_buffer = BytesIO(content)
             audio_buffer.name = Path(file_path).name
 
-            # Transcribe using Whisper
+            # Transcribe using Whisper with Spanish forced
             transcript = await self.client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_buffer,
+                language="es",  # Force Spanish language
                 response_format="verbose_json"
             )
 

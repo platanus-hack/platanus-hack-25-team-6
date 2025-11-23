@@ -176,7 +176,9 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
       console.log('[RealtimeRecorder] Audio analyser created for visualization');
 
       // Create a script processor to send audio chunks
-      const bufferSize = 4096;
+      // Smaller buffer = more frequent updates = faster transcription
+      // 2048 samples @ 24kHz = ~85ms chunks (was 4096 = ~170ms)
+      const bufferSize = 2048;
       processorRef.current = audioContextRef.current.createScriptProcessor(
         bufferSize,
         1,
@@ -228,14 +230,14 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
 
-      // Start periodic analysis (every 10 seconds)
-      console.log('[RealtimeRecorder] Starting periodic analysis every 10 seconds');
+      // Start periodic analysis (every 5 seconds for faster detection)
+      console.log('[RealtimeRecorder] Starting periodic analysis every 5 seconds');
       analysisIntervalRef.current = setInterval(() => {
         if (isConnectedRef.current) {
           console.log('[RealtimeRecorder] 🔍 Requesting periodic scam analysis...');
           requestAnalysis();
         }
-      }, 10000); // Analyze every 10 seconds
+      }, 5000); // Analyze every 5 seconds (was 10)
 
       console.log('[RealtimeRecorder] Recording started successfully');
     } catch (err) {
