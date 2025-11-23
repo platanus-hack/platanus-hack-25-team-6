@@ -28,7 +28,11 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
 
         // Check if onboarding is needed
-        if (!authUtils.hasCompletedOnboarding()) {
+        // Check both localStorage flag AND user data
+        const onboardingCompleted = authUtils.hasCompletedOnboarding() ||
+                                   (userData && userData.onboarding_completed);
+
+        if (!onboardingCompleted) {
           setShowOnboarding(true);
         }
       } else {
@@ -44,12 +48,16 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = (phoneNumber) => {
-    // Generate JWT token
-    const token = authUtils.generateToken(phoneNumber);
+  const login = (authResponse) => {
+    // authResponse comes from backend's /auth/verify-otp endpoint
+    // Contains: { access_token, user_id, phone, onboarding_completed, ... }
+
+    const token = authResponse.access_token;
     const userData = {
-      phone: phoneNumber,
-      createdAt: new Date().toISOString()
+      user_id: authResponse.user_id,
+      phone: authResponse.phone,
+      createdAt: new Date().toISOString(),
+      onboarding_completed: authResponse.onboarding_completed || false
     };
 
     // Store token and user data
@@ -59,9 +67,11 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     setIsAuthenticated(true);
 
-    // Show onboarding for first-time users
-    if (!authUtils.hasCompletedOnboarding()) {
+    // Show onboarding if not completed
+    if (!authResponse.onboarding_completed) {
       setShowOnboarding(true);
+    } else {
+      authUtils.setOnboardingCompleted();
     }
 
     return { token, user: userData };

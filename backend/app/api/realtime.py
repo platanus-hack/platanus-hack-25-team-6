@@ -1,6 +1,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from ..services.realtime_service import OpenAIRealtimeService
 from ..services.scam_detection import scam_detection_service
+from ..services.impersonation_alert import impersonation_alert_service
 from ..core.database import get_database
 from ..models.recording import Recording, RecordingStatus
 from datetime import datetime
@@ -14,14 +15,16 @@ router = APIRouter(prefix="/realtime", tags=["realtime"])
 class RealtimeSession:
     """Manages a real-time transcription and analysis session"""
 
-    def __init__(self, websocket: WebSocket, session_id: str):
+    def __init__(self, websocket: WebSocket, session_id: str, user_id: str = None):
         self.websocket = websocket
         self.session_id = session_id
+        self.user_id = user_id
         self.openai_service = OpenAIRealtimeService()
         self.recording_id: str = None
         self.transcript_buffer = []
         self.current_risk_level = "low"
         self.active = False
+        self.impersonation_alerted = False  # Track if we've already sent alerts
 
     async def start(self):
         """Start the real-time session"""
@@ -243,6 +246,39 @@ class RealtimeSession:
             # Update recording
             await self.update_recording()
 
+            # Check for impersonation and send alerts to trusted contacts
+            if (analysis.meta and
+                analysis.meta.impersonating and
+                not self.impersonation_alerted and
+                self.user_id and
+                risk_level in ["medium", "high", "critical"]):
+
+                print(f"[Session {self.session_id}] 🚨 Impersonation detected: {analysis.meta.impersonating}")
+                print(f"[Session {self.session_id}] Sending alerts to trusted contacts...")
+
+                # Send impersonation alerts
+                alert_result = await impersonation_alert_service.check_and_alert_impersonation(
+                    user_id=self.user_id,
+                    impersonating_entity=analysis.meta.impersonating,
+                    scam_indicators=analysis.indicators,
+                    transcript=full_transcript,
+                    risk_level=risk_level
+                )
+
+                self.impersonation_alerted = True
+
+                if alert_result.get("alerts_sent", 0) > 0:
+                    print(f"[Session {self.session_id}] ✅ Sent {alert_result['alerts_sent']} impersonation alerts")
+
+                    # Optionally notify the user that alerts were sent
+                    await self.websocket.send_json({
+                        "type": "impersonation.alert_sent",
+                        "alerts_sent": alert_result["alerts_sent"],
+                        "impersonating": analysis.meta.impersonating
+                    })
+                else:
+                    print(f"[Session {self.session_id}] ⚠️ No matching trusted contacts found for: {analysis.meta.impersonating}")
+
         except Exception as e:
             print(f"[Session {self.session_id}] Error in Claude analysis: {str(e)}")
             import traceback
@@ -376,7 +412,8 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
 
     session_id = str(uuid.uuid4())
-    session = RealtimeSession(websocket, session_id)
+    user_id = None  # Will be set from init message
+    session = RealtimeSession(websocket, session_id, user_id)
 
     try:
         # Start the session
@@ -401,7 +438,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 data = json.loads(message["text"])
                 print(f"[Session {session_id}] Control message: {data.get('type')}")
 
-                if data.get("type") == "stop":
+                if data.get("type") == "init":
+                    # Set user_id from client
+                    session.user_id = data.get("user_id")
+                    print(f"[Session {session_id}] User ID set: {session.user_id}")
+                elif data.get("type") == "stop":
                     print(f"[Session {session_id}] Stop requested by client")
                     break
                 elif data.get("type") == "analyze":

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { authUtils } from '../utils/auth';
 
 export const useRealtimeConnection = (onTranscript, onAnalysis, onError) => {
   const [isConnected, setIsConnected] = useState(false);
@@ -19,6 +20,16 @@ export const useRealtimeConnection = (onTranscript, onAnalysis, onError) => {
         console.log('[WebSocket] ✅ Connected successfully');
         isConnectedRef.current = true;
         setIsConnected(true);
+
+        // Send user_id for impersonation alerts
+        const userData = authUtils.getUserData();
+        if (userData && userData.user_id) {
+          ws.send(JSON.stringify({
+            type: 'init',
+            user_id: userData.user_id
+          }));
+          console.log('[WebSocket] Sent user_id:', userData.user_id);
+        }
       };
 
       ws.onmessage = (event) => {

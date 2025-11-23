@@ -34,10 +34,10 @@ function AppContent() {
     setView('verification');
   };
 
-  const handleVerify = (code) => {
-    console.log('Verifying code:', code, 'for phone:', phoneNumber);
-    // Login user with JWT
-    login(phoneNumber);
+  const handleVerify = (authResponse) => {
+    console.log('Verification successful:', authResponse);
+    // Login user with JWT from backend
+    login(authResponse);
     // View will automatically switch to dashboard via isAuthenticated
   };
 

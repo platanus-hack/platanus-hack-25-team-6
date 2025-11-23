@@ -1,10 +1,13 @@
 import random
 import string
+import uuid
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from ..services.whatsapp_service import whatsapp_service
 from ..core.database import get_database
+from ..utils.auth import create_access_token, get_current_user
+from fastapi import Depends
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -90,7 +93,12 @@ async def verify_otp(request: VerifyOTPRequest):
             raise HTTPException(status_code=400, detail="Too many attempts. Please request a new code.")
 
         # Verify code
-        if code != otp_data["code"]:
+        # Development bypass: accept "000000" or "123456" in development mode
+        from ..core.config import get_settings
+        settings = get_settings()
+        is_dev_code = (settings.environment == "development" and code in ["000000", "123456"])
+
+        if code != otp_data["code"] and not is_dev_code:
             await db.otp_codes.update_one(
                 {"phone": phone},
                 {"$inc": {"attempts": 1}}
@@ -100,12 +108,67 @@ async def verify_otp(request: VerifyOTPRequest):
         # Success - clean up
         await db.otp_codes.delete_one({"phone": phone})
 
+        # Check if user exists, create if not
+        user = await db.users.find_one({"phone": phone})
+
+        if not user:
+            # Create new user
+            user_id = str(uuid.uuid4())
+            user_data = {
+                "_id": user_id,
+                "phone": phone,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+                "onboarding_completed": False
+            }
+            await db.users.insert_one(user_data)
+        else:
+            user_id = user["_id"]
+
+        # Generate JWT token
+        access_token = create_access_token(
+            data={"user_id": user_id, "phone": phone}
+        )
+
         return {
             "status": "success",
             "message": "OTP verified successfully",
-            "authenticated": True
+            "authenticated": True,
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_id": user_id,
+            "phone": phone,
+            "onboarding_completed": user.get("onboarding_completed", False) if user else False
         }
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/complete-onboarding")
+async def complete_onboarding(
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Mark user's onboarding as completed
+    """
+    try:
+        db = get_database()
+
+        await db.users.update_one(
+            {"_id": current_user["user_id"]},
+            {
+                "$set": {
+                    "onboarding_completed": True,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+
+        return {
+            "status": "success",
+            "message": "Onboarding completed successfully"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

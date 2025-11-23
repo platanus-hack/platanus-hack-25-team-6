@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .core.config import get_settings
 from .core.database import connect_to_mongo, close_mongo_connection
-from .api import recordings, twilio_calls, realtime, whatsapp, auth
+from .api import recordings, twilio_calls, realtime, whatsapp, auth, trusted_contacts
 
 settings = get_settings()
 
@@ -39,6 +39,7 @@ app.include_router(twilio_calls.router, prefix=settings.api_prefix)
 app.include_router(realtime.router, prefix=settings.api_prefix)
 app.include_router(whatsapp.router, prefix=settings.api_prefix)
 app.include_router(auth.router, prefix=settings.api_prefix)
+app.include_router(trusted_contacts.router, prefix=settings.api_prefix)
 
 
 @app.get("/")

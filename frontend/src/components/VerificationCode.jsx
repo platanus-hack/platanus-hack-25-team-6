@@ -38,9 +38,14 @@ function VerificationCode({ phoneNumber, onVerify, onBack }) {
     setError('');
 
     try {
-      await authAPI.verifyOTP(phoneNumber, code);
-      onVerify(code);
+      console.log('[VerificationCode] Verifying OTP:', { phoneNumber, code });
+      const response = await authAPI.verifyOTP(phoneNumber, code);
+      console.log('[VerificationCode] OTP verification success:', response);
+      // Pass the full response data to onVerify (includes token, user_id, onboarding_completed)
+      onVerify(response);
     } catch (err) {
+      console.error('[VerificationCode] OTP verification failed:', err);
+      console.error('[VerificationCode] Error response:', err.response?.data);
       setError(err.response?.data?.detail || 'Código inválido. Intenta nuevamente.');
       setVerificationCode(['', '', '', '', '', '']);
       document.getElementById('code-0')?.focus();

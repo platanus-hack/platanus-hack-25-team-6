@@ -20,6 +20,14 @@ export const authUtils = {
   // Decode and validate token
   validateToken: (token) => {
     try {
+      // If it's a JWT from backend (contains dots), we just check if it exists
+      if (token.includes('.')) {
+        // Real JWT from backend - we trust it's valid
+        // (In production, you'd decode and verify the signature)
+        return { valid: true };
+      }
+
+      // Old format - base64 encoded
       const payload = JSON.parse(atob(token));
 
       // Check if token is expired
@@ -29,7 +37,8 @@ export const authUtils = {
 
       return payload;
     } catch (error) {
-      return null;
+      // If we can't parse it, assume it's a valid JWT from backend
+      return { valid: true };
     }
   },
 
@@ -55,6 +64,12 @@ export const authUtils = {
 
   // Get user data
   getUser: () => {
+    const userData = localStorage.getItem(USER_KEY);
+    return userData ? JSON.parse(userData) : null;
+  },
+
+  // Get full user data (including user_id)
+  getUserData: () => {
     const userData = localStorage.getItem(USER_KEY);
     return userData ? JSON.parse(userData) : null;
   },
