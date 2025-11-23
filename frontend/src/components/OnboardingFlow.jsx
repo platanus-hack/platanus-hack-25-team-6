@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Download, Phone, Smartphone, Shield, CheckCircle, ArrowRight, Bell, Users, UserPlus, Trash2 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import api from '../services/api';
@@ -6,6 +6,7 @@ import api from '../services/api';
 function OnboardingFlow({ onComplete }) {
   const [currentStep, setCurrentStep] = useState(0);
   const { isInstallable, promptInstall } = usePWAInstall();
+  const stepContentRef = useRef(null);
 
   const [trustedContacts, setTrustedContacts] = useState([]);
 
@@ -68,52 +69,61 @@ function OnboardingFlow({ onComplete }) {
 
   const CurrentStepComponent = steps[currentStep].component;
 
+  // Reset scroll position when step changes
+  useEffect(() => {
+    if (stepContentRef.current) {
+      stepContentRef.current.scrollTop = 0;
+    }
+  }, [currentStep]);
+
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-3 md:p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-xl sm:rounded-2xl max-w-2xl w-full relative overflow-hidden max-h-[96vh] sm:max-h-[95vh] md:max-h-[90vh] flex flex-col">
-        {/* Skip button */}
-        <button
-          onClick={handleSkip}
-          className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 text-slate-400 hover:text-white transition-colors z-10"
-          aria-label="Saltar"
-        >
-          <X className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-        </button>
-
-        {/* Progress indicator */}
-        <div className="flex gap-1 sm:gap-1.5 md:gap-2 p-2 sm:p-3 md:p-4 bg-slate-950/50">
-          {steps.map((step, index) => (
-            <div
-              key={step.id}
-              className={`flex-1 h-1 sm:h-1.5 rounded-full transition-all ${
-                index <= currentStep ? 'bg-gradient-to-r from-purple-500 to-pink-600' : 'bg-slate-700'
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Step content */}
-        <div className="p-4 sm:p-6 md:p-8 flex-1 flex flex-col min-h-0">
-          <CurrentStepComponent
-            onNext={handleNext}
-            isInstallable={isInstallable}
-            promptInstall={promptInstall}
-            trustedContacts={trustedContacts}
-            setTrustedContacts={setTrustedContacts}
-          />
-        </div>
-
-        {/* Navigation */}
-        <div className="flex justify-between items-center p-3 sm:p-4 md:p-6 bg-slate-950/50 border-t border-slate-800">
-          <span className="text-[10px] sm:text-xs md:text-sm text-slate-400">
-            Paso {currentStep + 1} de {steps.length}
-          </span>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="min-h-full flex items-center justify-center p-2 sm:p-3 md:p-4 py-4">
+        <div className="bg-slate-900 border border-slate-700 rounded-xl sm:rounded-2xl max-w-2xl w-full relative overflow-y-auto flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-1.5rem)] md:max-h-[calc(100vh-2rem)]" style={{ WebkitOverflowScrolling: 'touch' }}>
+          {/* Skip button */}
           <button
             onClick={handleSkip}
-            className="text-[10px] sm:text-xs md:text-sm text-slate-400 hover:text-white transition-colors"
+            className="absolute top-2 right-2 sm:top-3 sm:right-3 md:top-4 md:right-4 text-slate-400 hover:text-white transition-colors z-10"
+            aria-label="Saltar"
           >
-            Saltar todo
+            <X className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6" />
           </button>
+
+          {/* Progress indicator */}
+          <div className="flex gap-1 sm:gap-1.5 md:gap-2 p-2 sm:p-3 md:p-4 bg-slate-950/50 flex-shrink-0">
+            {steps.map((step, index) => (
+              <div
+                key={step.id}
+                className={`flex-1 h-1 sm:h-1.5 rounded-full transition-all ${
+                  index <= currentStep ? 'bg-gradient-to-r from-purple-500 to-pink-600' : 'bg-slate-700'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Step content */}
+          <div ref={stepContentRef} className="p-4 sm:p-6 md:p-8 flex-1 flex flex-col min-h-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <CurrentStepComponent
+              onNext={handleNext}
+              isInstallable={isInstallable}
+              promptInstall={promptInstall}
+              trustedContacts={trustedContacts}
+              setTrustedContacts={setTrustedContacts}
+            />
+          </div>
+
+          {/* Navigation */}
+          <div className="flex justify-between items-center p-3 sm:p-4 md:p-6 bg-gradient-to-t from-slate-950  flex-shrink-0 sticky bottom-0">
+            <span className="text-[10px] sm:text-xs md:text-sm text-slate-400">
+              Paso {currentStep + 1} de {steps.length}
+            </span>
+            <button
+              onClick={handleSkip}
+              className="text-[10px] sm:text-xs md:text-sm text-slate-400 hover:text-white transition-colors"
+            >
+              Saltar todo
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -143,41 +153,41 @@ END:VCARD`;
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="text-center">
           {/* Icon */}
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-4">
             <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
               <Phone className="w-10 h-10 text-white" />
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-3xl font-bold text-white mb-3">
+          <h2 className="sm:text-2xl md:text-3xl font-bold text-white mb-3">
             Guarda el Contacto del Bot
           </h2>
 
           {/* Description */}
-          <p className="text-slate-300 mb-8 text-lg">
+          <p className="text-slate-300 mb-4 sm:text-sm md:text-base">
             Agrega el bot a tus contactos para que puedas llamarlo fácilmente cuando necesites analizar una llamada sospechosa.
           </p>
 
           {/* Contact Info */}
-          <div className="bg-slate-800 rounded-xl p-6 mb-8">
+          <div className="bg-slate-800 rounded-xl p-6 mb-4">
             <div className="flex items-center justify-between">
               <div className="text-left">
                 <p className="text-sm text-slate-400 mb-1">Nombre del Contacto</p>
-                <p className="text-white font-bold text-xl">#SafeLine</p>
+                <p className="text-white font-bold text-lg">#SafeLine</p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-slate-400 mb-1">Número</p>
-                <p className="text-white font-bold text-xl">+56 600 914 0389</p>
+                <p className="text-white font-bold text-lg">+56 600 914 0389</p>
               </div>
             </div>
           </div>
 
           {/* Instructions */}
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
             <p className="text-blue-300 text-sm">
               💡 <strong>Tip:</strong> Una vez guardado, solo llama a este número durante una llamada sospechosa y el bot la analizará en tiempo real.
             </p>
@@ -216,10 +226,10 @@ function PWAStep({ onNext, isInstallable, promptInstall }) {
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="text-center">
           {/* Icon */}
-          <div className="flex justify-center mb-4 sm:mb-6">
+          <div className="flex justify-center mb-4">
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full flex items-center justify-center">
               <Smartphone className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
             </div>
@@ -364,34 +374,34 @@ function TrustedContactsStep({ onNext, trustedContacts, setTrustedContacts }) {
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="text-center">
           {/* Icon */}
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-4">
             <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center">
               <Users className="w-10 h-10 text-white" />
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-3xl font-bold text-white mb-3">
+          <h2 className="sm:text-2xl md:text-3xl font-bold text-white mb-3">
             Agrega Contactos Cercanos
           </h2>
 
           {/* Description */}
-          <p className="text-slate-300 mb-6 text-lg">
+          <p className="text-slate-300 mb-6 sm:text-base md:text-lg">
             Si detectamos que un estafador se hace pasar por alguno de estos contactos, les enviaremos un WhatsApp para verificar si realmente son ellos.
           </p>
 
           {/* Info box */}
-          <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 mb-6">
+          <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 mb-3">
             <p className="text-orange-300 text-sm text-left">
               💡 <strong>Tip:</strong> Agrega familiares cercanos, tu banco, o instituciones que te contactan frecuentemente.
             </p>
           </div>
 
           {/* Add contact form */}
-          <div className="bg-slate-800 rounded-xl p-5 mb-6">
+          <div className="bg-slate-800 rounded-xl p-3 mb-3">
             <div className="space-y-3">
               <input
                 type="text"
@@ -489,34 +499,34 @@ function ExplanationStep({ onNext }) {
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="text-center">
           {/* Icon */}
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-4">
             <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
               <Shield className="w-10 h-10 text-white" />
             </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-3xl font-bold text-white mb-3">
+          <h2 className="sm:text-2xl md:text-3xl font-bold text-white mb-3">
             ¿Cómo Funciona SafeLine?
           </h2>
 
           {/* Description */}
-          <p className="text-slate-300 mb-8 text-lg">
+          <p className="text-slate-300 mb-8 sm:text-base md:text-lg">
             Protección inteligente contra fraudes telefónicos en 3 simples pasos
           </p>
 
           {/* Steps */}
-          <div className="space-y-4 mb-6 text-left">
+          <div className="space-y-4 mb-3 text-left">
             <div className="bg-slate-800 rounded-xl p-5 border-l-4 border-purple-500">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-purple-400 font-bold text-lg">1</span>
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg mb-1">Recibe una Llamada Sospechosa</h3>
+                  <h3 className="text-white font-bold text-base md:text-lg mb-1">Recibe una Llamada Sospechosa</h3>
                   <p className="text-slate-400">
                     Cuando recibas una llamada que te parezca extraña o sospechosa, no cuelgues.
                   </p>
@@ -530,7 +540,7 @@ function ExplanationStep({ onNext }) {
                   <span className="text-blue-400 font-bold text-lg">2</span>
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg mb-1">Llama al Bot</h3>
+                  <h3 className="text-white font-bold text-base md:text-lg mb-1">Llama al Bot</h3>
                   <p className="text-slate-400">
                     Durante la llamada, agrega en la llamada al bot #SafeLine creando una conferencia.
                   </p>
@@ -544,7 +554,7 @@ function ExplanationStep({ onNext }) {
                   <span className="text-green-400 font-bold text-lg">3</span>
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-lg mb-1">Análisis en Tiempo Real</h3>
+                  <h3 className="text-white font-bold text-base md:text-lg mb-1">Análisis en Tiempo Real</h3>
                   <p className="text-slate-400">
                     Nuestra IA analiza la conversación en tiempo real y te alerta si detecta señales de fraude.
                   </p>
