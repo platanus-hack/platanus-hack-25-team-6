@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, Response, WebSocket, WebSocketDisconnect
 from twilio.twiml.voice_response import VoiceResponse, Connect
+from twilio.rest import Client as TwilioClient
 from ..core.config import get_settings
 from ..core.database import get_database
 from ..models.recording import Recording, RecordingStatus
@@ -10,6 +11,7 @@ import json
 import base64
 import uuid
 import asyncio
+from pathlib import Path
 
 router = APIRouter(prefix="/twilio", tags=["twilio"])
 
@@ -19,6 +21,9 @@ active_sessions = {}
 
 class TwilioCallSession:
     """Manages a Twilio call with real-time transcription and scam detection"""
+
+    # Configuration: risk levels that trigger audio warning
+    WARNING_AUDIO_TRIGGERS = ["high", "critical"]  # Customize as needed
 
     def __init__(self, call_sid: str, stream_sid: str, caller_number: str, called_number: str = None):
         self.call_sid = call_sid
@@ -35,6 +40,7 @@ class TwilioCallSession:
         self.audio_chunks_received = 0
         self.start_time = datetime.utcnow()  # Track call start time
         self.duration = 0  # Duration in seconds
+        self.warning_audio_played = False  # Track if warning already played
 
     async def start(self, twilio_ws: WebSocket):
         """Start the call session"""
@@ -227,6 +233,11 @@ class TwilioCallSession:
                 "is_danger": risk_level in ["medium", "high", "critical"]
             })
 
+            # Inject warning audio if risk level triggers it
+            if risk_level in self.WARNING_AUDIO_TRIGGERS:
+                print(f"[Twilio Call {self.call_sid}] 🚨 Risk level {risk_level.upper()} detected - triggering audio warning")
+                asyncio.create_task(self.inject_warning_audio())
+
             # Update recording
             await self.update_recording()
 
@@ -266,6 +277,65 @@ class TwilioCallSession:
 
         # Remove disconnected websockets
         self.frontend_websockets -= disconnected
+
+    async def inject_warning_audio(self):
+        """Inject warning audio into the active Twilio call"""
+        if self.warning_audio_played:
+            print(f"[Twilio Call {self.call_sid}] ⚠️ Warning audio already played, skipping")
+            return
+
+        try:
+            settings = get_settings()
+
+            # Check if Twilio is configured
+            if not settings.twilio_account_sid or not settings.twilio_auth_token:
+                print(f"[Twilio Call {self.call_sid}] ❌ Twilio credentials not configured")
+                return
+
+            # Find warning audio file directly from filesystem
+            audio_dir = Path(__file__).parent.parent.parent / "assets" / "audio"
+            audio_file = None
+
+            # Look for warning audio in order of preference
+            for filename in ["warning.mp3", "warning.wav", "warning.ogg"]:
+                file_path = audio_dir / filename
+                if file_path.exists():
+                    audio_file = file_path
+                    break
+
+            if not audio_file:
+                print(f"[Twilio Call {self.call_sid}] ⚠️ No warning audio file found in {audio_dir}")
+                print(f"[Twilio Call {self.call_sid}] Expected: warning.mp3, warning.wav, or warning.ogg")
+                return
+
+            # Build URL to audio endpoint (reads from filesystem)
+            base_url = settings.base_url.rstrip('/')
+            audio_url = f"{base_url}/api/v1/twilio/warning-audio"
+
+            print(f"[Twilio Call {self.call_sid}] 🔊 Injecting warning audio into call...")
+            print(f"[Twilio Call {self.call_sid}]    Audio URL: {audio_url}")
+
+            # Initialize Twilio client
+            client = TwilioClient(settings.twilio_account_sid, settings.twilio_auth_token)
+
+            # Update the call to play audio from our endpoint
+            call = client.calls(self.call_sid).update(
+                twiml=f'<Response><Play>{audio_url}</Play></Response>'
+            )
+
+            self.warning_audio_played = True
+            print(f"[Twilio Call {self.call_sid}] ✅ Warning audio injected successfully")
+
+            # Notify frontends that audio was played
+            await self.broadcast_to_frontends({
+                "type": "warning.audio_played",
+                "message": "Audio de advertencia reproducido en la llamada"
+            })
+
+        except Exception as e:
+            print(f"[Twilio Call {self.call_sid}] ❌ Error injecting audio: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     async def stop(self):
         """Stop the call session"""
@@ -512,3 +582,37 @@ async def twilio_health():
         "twilio_configured": bool(settings.twilio_account_sid and settings.twilio_auth_token),
         "active_calls": len(active_sessions)
     }
+
+
+@router.get("/warning-audio")
+async def get_warning_audio():
+    """Serve the warning audio file for Twilio to play during calls"""
+    from fastapi.responses import FileResponse
+
+    # Find warning audio file from filesystem
+    audio_dir = Path(__file__).parent.parent.parent / "assets" / "audio"
+
+    # Look for warning audio in order of preference
+    for filename in ["warning.mp3", "warning.wav", "warning.ogg"]:
+        file_path = audio_dir / filename
+        if file_path.exists():
+            # Determine media type
+            media_types = {
+                ".mp3": "audio/mpeg",
+                ".wav": "audio/wav",
+                ".ogg": "audio/ogg"
+            }
+            media_type = media_types.get(file_path.suffix, "audio/mpeg")
+
+            return FileResponse(
+                path=str(file_path),
+                media_type=media_type,
+                filename=filename
+            )
+
+    # If no audio file found, return error
+    return Response(
+        content="Warning audio file not found. Please add warning.mp3, warning.wav, or warning.ogg to backend/assets/audio/",
+        status_code=404,
+        media_type="text/plain"
+    )
