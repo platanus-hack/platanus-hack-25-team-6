@@ -26,16 +26,28 @@ export const RealtimeRecorder = ({ onScamDetected }) => {
   const handleAnalysis = (analysis) => {
     setCurrentAnalysis(analysis);
 
-    // Add analysis to transcript for history
-    if (analysis.text) {
-      setTranscript((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          text: analysis.text,
-          timestamp: new Date()
+    // Add analysis to transcript for history ONLY if it has meaningful content
+    // Skip if it's the initial "no conversation" analysis
+    if (analysis.text && !analysis.text.includes('No se ha detectado conversación')) {
+      setTranscript((prev) => {
+        // Check if this exact analysis already exists to avoid duplicates
+        const isDuplicate = prev.some(
+          item => item.role === 'assistant' && item.text === analysis.text
+        );
+
+        if (isDuplicate) {
+          return prev;
         }
-      ]);
+
+        return [
+          ...prev,
+          {
+            role: 'assistant',
+            text: analysis.text,
+            timestamp: new Date()
+          }
+        ];
+      });
     }
 
     // Show browser notification for medium, high, or critical risk

@@ -89,6 +89,11 @@ export const AuthProvider = ({ children }) => {
     setShowOnboarding(false);
   };
 
+  const getAuthHeader = () => {
+    const token = authUtils.getToken();
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
+
   const value = {
     user,
     isAuthenticated,
@@ -96,7 +101,8 @@ export const AuthProvider = ({ children }) => {
     showOnboarding,
     login,
     logout,
-    completeOnboarding
+    completeOnboarding,
+    getAuthHeader
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

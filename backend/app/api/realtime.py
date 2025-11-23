@@ -228,12 +228,9 @@ class RealtimeSession:
 
             print(f"[Session {self.session_id}] ✅ Claude analysis: {risk_level} risk, {len(analysis.indicators)} indicators")
 
-            # Add analysis to transcript buffer for history
-            self.transcript_buffer.append({
-                "role": "assistant",
-                "text": formatted_text,
-                "timestamp": datetime.utcnow().isoformat()
-            })
+            # DON'T add analysis to transcript_buffer - it causes duplicates
+            # The frontend handles displaying analyses, and the final analysis
+            # on stop() will be saved to the database properly
 
             # Send to client
             await self.websocket.send_json({
@@ -243,7 +240,7 @@ class RealtimeSession:
                 "text": formatted_text
             })
 
-            # Update recording
+            # Update recording with current transcript (user messages only)
             await self.update_recording()
 
             # Check for impersonation and send alerts to trusted contacts
@@ -288,10 +285,11 @@ class RealtimeSession:
         """Update recording in database with latest transcript"""
         db = get_database()
 
-        # Combine all transcripts
+        # Combine only USER transcripts (not assistant analyses to avoid duplicates)
         full_transcript = "\n".join([
             f"[{item['role'].upper()}]: {item['text']}"
             for item in self.transcript_buffer
+            if item['role'] == 'user'  # Only include user messages
         ])
 
         await db.recordings.update_one(

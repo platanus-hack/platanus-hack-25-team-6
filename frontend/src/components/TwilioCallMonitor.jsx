@@ -134,11 +134,26 @@ export const TwilioCallMonitor = () => {
 
         case 'analysis.complete':
           setCurrentRiskLevel(data.risk_level);
-          setTranscript(prev => [...prev, {
-            role: 'assistant',
-            text: data.text,
-            timestamp: new Date().toISOString()
-          }]);
+
+          // Only add to transcript if it has meaningful content and isn't a duplicate
+          if (data.text && !data.text.includes('No se ha detectado conversación')) {
+            setTranscript(prev => {
+              // Check for duplicate to avoid double entries
+              const isDuplicate = prev.some(
+                item => item.role === 'assistant' && item.text === data.text
+              );
+
+              if (isDuplicate) {
+                return prev;
+              }
+
+              return [...prev, {
+                role: 'assistant',
+                text: data.text,
+                timestamp: new Date().toISOString()
+              }];
+            });
+          }
 
           // Play danger alert if risky
           if (data.is_danger) {

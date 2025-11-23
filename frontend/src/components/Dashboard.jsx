@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Shield, Phone, AlertTriangle, Search, Filter } from 'lucide-react';
+import { Shield, Phone, AlertTriangle } from 'lucide-react';
 import CallDetail from './CallDetail';
 import { TwilioCallMonitor } from './TwilioCallMonitor';
+import TrustedContacts from './TrustedContacts';
 import { formatDateTime } from '../utils/dateFormatter';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 function Dashboard({ onLogout }) {
-  const [activeTab, setActiveTab] = useState('live'); // 'live' or 'history'
+  const [activeTab, setActiveTab] = useState('live'); // 'live', 'history', or 'contacts'
   const [selectedCall, setSelectedCall] = useState(null);
   const [recordings, setRecordings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,6 +123,19 @@ function Dashboard({ onLogout }) {
 
   const calls = recordings.map(mapRecordingToCall);
 
+  // Calculate KPIs for stats
+  const stats = {
+    totalCalls: recordings.length,
+    protectedCalls: recordings.filter(r => {
+      const risk = r.scam_risk_level || 'low';
+      return risk === 'medium' || risk === 'high' || risk === 'critical';
+    }).length,
+    scamsBlocked: recordings.filter(r => {
+      const risk = r.scam_risk_level || 'low';
+      return risk === 'high' || risk === 'critical';
+    }).length
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'FRAUDE':
@@ -199,7 +213,7 @@ function Dashboard({ onLogout }) {
         <div className="flex gap-2 mb-6 sm:mb-6 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-xl p-1">
           <button
             onClick={() => setActiveTab('live')}
-            className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all ${
+            className={`flex-1 px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all text-sm sm:text-base ${
               activeTab === 'live'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
@@ -209,13 +223,23 @@ function Dashboard({ onLogout }) {
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all ${
+            className={`flex-1 px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all text-sm sm:text-base ${
               activeTab === 'history'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
             📋 Historial
+          </button>
+          <button
+            onClick={() => setActiveTab('contacts')}
+            className={`flex-1 px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all text-sm sm:text-base ${
+              activeTab === 'contacts'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+            }`}
+          >
+            👥 Contactos
           </button>
         </div>
 
@@ -226,20 +250,51 @@ function Dashboard({ onLogout }) {
           </div>
         )}
 
+        {/* Contacts Tab */}
+        {activeTab === 'contacts' && (
+          <TrustedContacts />
+        )}
+
         {/* History Tab */}
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4">
-          {activeTab === 'history' && (
-            <div className="flex items-center gap-3">
-              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <Search className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
-              </button>
-              <button className="p-2 sm:p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-                <Filter className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
-              </button>
+        {activeTab === 'history' && (
+          <>
+            {/* Stats Cards - Only show in history tab */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mb-6">
+              {/* Total Calls Monitored */}
+              <div className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 backdrop-blur-xl border-2 border-blue-600/30 rounded-2xl p-5 sm:p-6 hover:border-blue-500/60 hover:shadow-lg hover:shadow-blue-500/20 transition-all transform hover:scale-105">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="bg-blue-600/40 p-3 rounded-xl">
+                    <Phone className="w-6 h-6 sm:w-7 sm:h-7 text-blue-300" />
+                  </div>
+                </div>
+                <div className="text-3xl sm:text-4xl font-bold text-white mb-2">{stats.totalCalls}</div>
+                <div className="text-sm sm:text-base text-blue-300 font-semibold">Llamadas Monitoreadas</div>
+              </div>
+
+              {/* Times Protected */}
+              <div className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 backdrop-blur-xl border-2 border-purple-600/30 rounded-2xl p-5 sm:p-6 hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 transition-all transform hover:scale-105">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="bg-purple-600/40 p-3 rounded-xl">
+                    <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-purple-300" />
+                  </div>
+                </div>
+                <div className="text-3xl sm:text-4xl font-bold text-white mb-2">{stats.protectedCalls}</div>
+                <div className="text-sm sm:text-base text-purple-300 font-semibold">Veces Protegido</div>
+              </div>
+
+              {/* Scams Blocked */}
+              <div className="bg-gradient-to-br from-red-600/20 to-red-800/20 backdrop-blur-xl border-2 border-red-600/30 rounded-2xl p-5 sm:p-6 hover:border-red-500/60 hover:shadow-lg hover:shadow-red-500/20 transition-all transform hover:scale-105">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="bg-red-600/40 p-3 rounded-xl">
+                    <AlertTriangle className="w-6 h-6 sm:w-7 sm:h-7 text-red-300" />
+                  </div>
+                </div>
+                <div className="text-3xl sm:text-4xl font-bold text-white mb-2">{stats.scamsBlocked}</div>
+                <div className="text-sm sm:text-base text-red-300 font-semibold">Estafas Bloqueadas</div>
+              </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
         {activeTab === 'history' && (
           <>
             {/* Loading State */}
