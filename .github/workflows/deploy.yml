@@ -60,7 +60,7 @@ jobs:
           # Application Configuration
           PORT=8000
           NODE_ENV=production
-          VITE_API_URL=https://api.${{ secrets.DOMAIN }}
+          VITE_API_URL=https://api.${{ secrets.DOMAIN }}/api/v1
           BASE_URL=https://api.${{ secrets.DOMAIN }}
 
           KAPSO_API_KEY=${{ secrets.KAPSO_API_KEY }}
