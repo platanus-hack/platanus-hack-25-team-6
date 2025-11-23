@@ -73,8 +73,10 @@ jobs:
           # Remove old deployment files on server
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "rm -rf /opt/app/*"
 
-          # Copy all files to server (includes docker-compose.prod.yml)
-          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r deploy_package/* root@${{ secrets.SERVER_IP }}:/opt/app/
+          # Copy all files to server (includes .env and docker-compose.prod.yml)
+          cd deploy_package
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r . root@${{ secrets.SERVER_IP }}:/opt/app/
+          cd ..
 
       - name: Deploy and restart services
         run: |
