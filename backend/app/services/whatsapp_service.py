@@ -41,9 +41,22 @@ class WhatsAppService:
         }
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=payload, headers=headers)
-            response.raise_for_status()
-            return response.json()
+            try:
+                response = await client.post(url, json=payload, headers=headers)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                # Log detailed error information
+                error_detail = {
+                    "status_code": e.response.status_code,
+                    "response_body": e.response.text,
+                    "url": url,
+                    "phone_number_id": self.phone_number_id,
+                    "api_key_present": bool(self.api_key),
+                    "api_key_length": len(self.api_key) if self.api_key else 0
+                }
+                print(f"Kapso API Error: {error_detail}")
+                raise Exception(f"Kapso API error: {e.response.status_code} - {e.response.text}")
 
     async def send_scam_alert(self, to: str, risk_level: str, summary: str, call_id: str = None) -> dict:
         """
